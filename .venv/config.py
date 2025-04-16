@@ -7,6 +7,7 @@ load_dotenv()
 
 TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = 7522466558
+MIUS_ID = 5236847464
 
 DB_PATH = BASE_DIR / 'data' / 'bot_database.db'
 

@@ -11,6 +11,10 @@ class ComplimentScheduler:
     def __init__(self, bot, db):
         """
         Инициализация планировщика комплиментов.
+
+        Args:
+            bot: Объект бота для отправки сообщений
+            db: Объект базы данных
         """
         self.bot = bot
         self.db = db
@@ -106,6 +110,7 @@ class ComplimentScheduler:
     def schedule_daily_jobs(self) -> None:
         """Настройка ежедневного расписания отправки"""
         try:
+            # Очищаем существующие задачи
             self.scheduler.remove_all_jobs()
 
             # Утренняя отправка (8:00)
@@ -166,6 +171,9 @@ class ComplimentScheduler:
     def get_status(self) -> Dict:
         """
         Получение текущего статуса планировщика.
+
+        Returns:
+            Dict: Статус и статистика
         """
         return {
             'status': 'running' if self._running else 'stopped',
@@ -191,7 +199,7 @@ class ComplimentScheduler:
         """Проверка состояния планировщика"""
         return {
             'status': 'running' if self._running else 'stopped',
-            'users_count': self.db.get_subscribed_users_count(), 
+            'users_count': self.db.get_subscribed_users_count(),  # Используем новый метод
             'compliments_available': self.db.get_compliments_count(),
             'last_compliment_sent': self.db.get_last_compliment_time(),
             'next_check': datetime.now().strftime('%H:%M:%S')

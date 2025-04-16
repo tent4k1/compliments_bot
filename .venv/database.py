@@ -94,6 +94,16 @@ class Database:
             )
             """,
             """
+            CREATE TABLE IF NOT EXISTS wishlist (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            wish_text TEXT NOT NULL,
+            is_fulfilled BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            fulfilled_at TIMESTAMP
+            )
+            """,
+            """
             CREATE TABLE IF NOT EXISTS db_meta (
                 version INTEGER PRIMARY KEY
             )
@@ -307,6 +317,85 @@ class Database:
             return True
         except Exception as e:
             logging.error(f"Failed to record sent compliment: {e}")
+            return False
+
+    # ========== Wishlist Methods ==========
+    def add_wish(self, user_id: int, wish_text: str) -> bool:
+        """Добавление желания в список"""
+        try:
+            with self.conn:
+                self.conn.execute(
+                    "INSERT INTO wishlist (user_id, wish_text) VALUES (?, ?)",
+                    (user_id, wish_text)
+                )
+            return True
+        except Exception as e:
+            logging.error(f"Failed to add wish: {e}")
+            return False
+
+    def get_user_wishes(self, user_id: int) -> list:
+        """Получение желаний пользователя"""
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute(
+                "SELECT id, wish_text, is_fulfilled FROM wishlist WHERE user_id = ? ORDER BY created_at DESC",
+                (user_id,)
+            )
+            return cursor.fetchall()
+        except Exception as e:
+            logging.error(f"Failed to get wishes: {e}")
+            return []
+
+    def get_partner_wishes(self, user_id: int) -> list:
+        """Получение желаний партнера"""
+        from config import ADMIN_ID, MIUS_ID
+        partner_id = MIUS_ID if user_id == ADMIN_ID else ADMIN_ID
+
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute(
+                """SELECT id, wish_text FROM wishlist 
+                   WHERE user_id = ? AND is_fulfilled = FALSE
+                   ORDER BY created_at DESC""",
+                (partner_id,)
+            )
+            return cursor.fetchall()
+        except Exception as e:
+            logging.error(f"Failed to get partner wishes: {e}")
+            return []
+
+    def mark_fulfilled(self, wish_id: int) -> bool:
+        """Пометить желание как исполненное"""
+        try:
+            with self.conn:
+                self.conn.execute(
+                    "UPDATE wishlist SET is_fulfilled = TRUE, fulfilled_at = CURRENT_TIMESTAMP WHERE id = ?",
+                    (wish_id,)
+                )
+            return True
+        except Exception as e:
+            logging.error(f"Failed to mark wish fulfilled: {e}")
+            return False
+
+    def delete_wish(self, wish_id: int, user_id: int) -> bool:
+        """Удаление желания с проверкой владельца"""
+        try:
+            with self.conn:
+                cursor = self.conn.cursor()
+                # Проверяем, что желание принадлежит пользователю
+                cursor.execute(
+                    "SELECT 1 FROM wishlist WHERE id = ? AND user_id = ?",
+                    (wish_id, user_id))
+                if not cursor.fetchone():
+                    return False
+
+                # Удаление желания
+                cursor.execute(
+                    "DELETE FROM wishlist WHERE id = ?",
+                    (wish_id,))
+                return cursor.rowcount > 0
+        except Exception as e:
+            logging.error(f"Failed to delete wish {wish_id}: {e}")
             return False
 
     # ========== Stats Methods ==========

@@ -8,6 +8,7 @@ def main_menu():
     )
     markup.add(
         KeyboardButton('✅ Проверить подписку'),
+        KeyboardButton('📋 Вишлист')
     )
     markup.add(
         KeyboardButton('✅ Подписаться'),
