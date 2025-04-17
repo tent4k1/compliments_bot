@@ -4,7 +4,7 @@ from threading import Thread
 import time
 from config import TOKEN
 from database import Database
-from scheduler import ComplimentScheduler
+from utils.scheduler import ComplimentScheduler
 from handlers.user_commands import setup_user_commands
 from handlers.admin_commands import setup_admin_commands
 

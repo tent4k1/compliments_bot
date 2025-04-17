@@ -7,13 +7,13 @@ def main_menu():
         KeyboardButton('📊 Статистика')
     )
     markup.add(
-        KeyboardButton('✅ Проверить подписку'),
+        KeyboardButton('☑ Подписка'),
         KeyboardButton('📋 Вишлист')
     )
     markup.add(
-        KeyboardButton('✅ Подписаться'),
-        KeyboardButton('❌ Отписаться')
+        KeyboardButton('🌡 Погода'),
     )
+
     return markup
 
 def admin_menu():
