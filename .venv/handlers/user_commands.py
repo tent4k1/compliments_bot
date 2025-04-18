@@ -5,10 +5,9 @@ from telebot import TeleBot, types
 from decorators import log_command
 from keyboards.main_menu import main_menu
 from database import Database
-from config import WEATHER
+from config import WEATHER, DEFAULT_CITY
 
 db = Database()
-
 
 def setup_user_commands(bot: TeleBot, scheduler):
     @bot.message_handler(commands=['start'])
@@ -130,10 +129,12 @@ def setup_user_commands(bot: TeleBot, scheduler):
         btn_dubai = types.KeyboardButton('Дубай')
         btn_input = types.KeyboardButton('🌍 Ввести другой город')
         btn_back = types.KeyboardButton('🔙 Назад')
-        markup.add(btn_moscow, btn_podolsk, btn_efremov, btn_dubai, btn_input, btn_back)
+        btn_forecast = types.KeyboardButton('📈 Прогноз погоды')
+
+        markup.add(btn_moscow, btn_podolsk, btn_efremov, btn_dubai, btn_input, btn_back, btn_forecast)
         return markup
 
-    # Обработчик кнопки "Вишлист" в главном меню
+    # Обработчик кнопки "Погода" в главном меню
     @bot.message_handler(func=lambda msg: msg.text == '🌡 Погода')
     @log_command
     def weather_menu(message):
@@ -152,6 +153,21 @@ def setup_user_commands(bot: TeleBot, scheduler):
             bot.register_next_step_handler(msg, process_weather_request)
         else:
             process_weather_request(message)
+
+    def get_daily_forecast(city_name: str) -> str:
+        """Получение и форматирование прогноза погоды"""
+        base_url = "http://api.openweathermap.org/data/2.5/forecast"
+        params = {
+            'q': city_name,
+            'appid': WEATHER,
+            'units': 'metric',
+            'cnt': 8,
+            'lang': 'ru'
+        }
+
+        response = requests.get(base_url, params=params, timeout=10)
+        response.raise_for_status()
+        return format_forecast(response.json())
 
     def process_weather_request(message):
         city = message.text
@@ -198,6 +214,7 @@ def setup_user_commands(bot: TeleBot, scheduler):
         return (
             f"<b>Погода в {data['name']}:</b>\n\n"
             f"🌡️ Температура: {main['temp']}°C (ощущается как {main['feels_like']}°C)\n"
+            f"🌡️ Минимальная/Максимальная температура днем: Минимальная - {main['temp_min']}°C Максимальная - {main['temp_max']}°C)\n"
             f"☁️ Состояние: {weather['description'].capitalize()}\n"
             f"💧 Влажность: {main['humidity']}%\n"
             f"🌀 Давление: {main['pressure']} hPa\n"
@@ -205,3 +222,68 @@ def setup_user_commands(bot: TeleBot, scheduler):
             f"🌅 Восход: {sunrise_time}\n"
             f"🌇 Закат: {sunset_time}"
         )
+
+    @bot.message_handler(func=lambda msg: msg.text == '📈 Прогноз погоды')
+    @log_command
+    def handle_weather_command(message):
+        try:
+            forecast = get_daily_forecast(DEFAULT_CITY)
+            bot.send_message(
+                message.chat.id,
+                forecast,
+                parse_mode='HTML'
+            )
+        except Exception as e:
+            bot.reply_to(
+                message,
+                f"❌ Ошибка при получении погоды: {str(e)}",
+                parse_mode='HTML'
+            )
+
+    def get_weather_icon(weather_id: int) -> str:
+        """Возвращает иконку для типа погоды"""
+        if 200 <= weather_id < 300:
+            return '⛈️'  # Гроза
+        elif 300 <= weather_id < 400:
+            return '🌧️'  # Морось
+        elif 500 <= weather_id < 600:
+            return '🌧️'  # Дождь
+        elif 600 <= weather_id < 700:
+            return '❄️'  # Снег
+        elif 700 <= weather_id < 800:
+            return '🌫️'  # Атмосферные явления
+        elif weather_id == 800:
+            return '☀️'  # Ясно
+        elif 801 <= weather_id < 900:
+            return '☁️'  # Облачно
+        else:
+            return '🌈'
+
+    @bot.message_handler(func=lambda msg: msg.text == '✔ Установить город по умолчания')
+    def set_weather_city(message):
+        try:
+            city = message.text.split(maxsplit=1)[1]
+            # Здесь можно сохранить город для пользователя в БД
+            bot.reply_to(message, f"🌆 Город для погоды установлен: {city}")
+        except IndexError:
+            bot.reply_to(message, "Ошибка")
+
+    def format_forecast(data: dict) -> str:
+        """Форматирование данных прогноза"""
+        try:
+            forecast_lines = []
+            for item in data['list']:
+                time = datetime.fromtimestamp(item['dt']).strftime('%H:%M')
+                temp = item['main']['temp']
+                icon = get_weather_icon(item['weather'][0]['id'])
+                desc = item['weather'][0]['description'].capitalize()
+                forecast_lines.append(f"{icon} {time}: {temp}°C, {desc}")
+
+            return (
+                    f"<b>Прогноз в {data['city']['name']}:</b>\n\n" +
+                    "\n".join(forecast_lines) +
+                    f"\n\n<b>Средняя температура:</b> {sum(i['main']['temp'] for i in data['list']) / 8:.1f}°C"
+            )
+        except KeyError as e:
+            logging.error(f"Missing key in weather data: {str(e)}")
+            raise Exception("Некорректные данные о погоде")

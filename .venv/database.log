@@ -1369,3 +1369,490 @@ NameError: name 'weather' is not defined
 2025-04-17 23:30:38,841 - INFO - Compliment scheduler started
 2025-04-17 23:30:38,842 - INFO - Бот запущен и готов к работе
 2025-04-17 23:30:38,850 - INFO - Health check: 2 users, 44 compliments available
+2025-04-18 22:02:35,497 - INFO - Database tables created/verified
+2025-04-18 22:02:35,498 - INFO - Database initialized at data\bot_database.db
+2025-04-18 22:02:35,903 - INFO - Restored 2 subscriptions
+2025-04-18 22:02:35,905 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:02:35,906 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:02:35,907 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:02:35,908 - INFO - Scheduled daily compliment jobs
+2025-04-18 22:02:35,915 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:02:35,916 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:02:35,917 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:02:35,918 - INFO - Scheduler started
+2025-04-18 22:02:35,920 - INFO - Compliment scheduler started
+2025-04-18 22:02:35,923 - INFO - Бот запущен и готов к работе
+2025-04-18 22:02:35,943 - INFO - Health check: 2 users, 44 compliments available
+2025-04-18 22:02:48,710 - INFO - User 7522466558 added/updated
+2025-04-18 22:02:48,715 - INFO - User 7522466558 subscription set to True
+2025-04-18 22:03:16,843 - ERROR - Infinity polling: polling exited
+2025-04-18 22:03:16,844 - ERROR - Break infinity polling
+2025-04-18 22:03:16,845 - INFO - Scheduler has been shut down
+2025-04-18 22:03:16,846 - INFO - Scheduler stopped
+2025-04-18 22:03:16,847 - INFO - Бот завершил работу
+2025-04-18 22:03:31,831 - INFO - Database tables created/verified
+2025-04-18 22:03:31,831 - INFO - Database initialized at data\bot_database.db
+2025-04-18 22:03:32,254 - INFO - Restored 2 subscriptions
+2025-04-18 22:03:32,255 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:03:32,255 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:03:32,256 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:03:32,256 - INFO - Scheduled daily compliment jobs
+2025-04-18 22:03:32,258 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:03:32,258 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:03:32,259 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:03:32,259 - INFO - Scheduler started
+2025-04-18 22:03:32,259 - INFO - Compliment scheduler started
+2025-04-18 22:03:32,260 - INFO - Бот запущен и готов к работе
+2025-04-18 22:03:32,266 - INFO - Health check: 2 users, 44 compliments available
+2025-04-18 22:03:41,120 - INFO - User 7522466558 added/updated
+2025-04-18 22:03:41,123 - INFO - User 7522466558 subscription set to True
+2025-04-18 22:04:02,119 - ERROR - Infinity polling: polling exited
+2025-04-18 22:04:02,119 - ERROR - Break infinity polling
+2025-04-18 22:04:02,119 - INFO - Scheduler has been shut down
+2025-04-18 22:04:02,119 - INFO - Scheduler stopped
+2025-04-18 22:04:02,119 - INFO - Бот завершил работу
+2025-04-18 22:05:55,336 - INFO - Database tables created/verified
+2025-04-18 22:05:55,336 - INFO - Database initialized at data\bot_database.db
+2025-04-18 22:05:55,700 - INFO - Restored 2 subscriptions
+2025-04-18 22:05:55,703 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:05:55,704 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:05:55,705 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:05:55,706 - INFO - Scheduled daily compliment jobs
+2025-04-18 22:05:55,714 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:05:55,715 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:05:55,717 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:05:55,717 - INFO - Scheduler started
+2025-04-18 22:05:55,719 - INFO - Compliment scheduler started
+2025-04-18 22:05:55,721 - INFO - Бот запущен и готов к работе
+2025-04-18 22:05:55,738 - INFO - Health check: 2 users, 44 compliments available
+2025-04-18 22:07:34,110 - ERROR - Infinity polling: polling exited
+2025-04-18 22:07:34,112 - ERROR - Break infinity polling
+2025-04-18 22:07:34,113 - INFO - Scheduler has been shut down
+2025-04-18 22:07:34,113 - INFO - Scheduler stopped
+2025-04-18 22:07:34,113 - INFO - Бот завершил работу
+2025-04-18 22:10:27,317 - INFO - Database tables created/verified
+2025-04-18 22:10:27,318 - INFO - Database initialized at data\bot_database.db
+2025-04-18 22:10:27,684 - INFO - Restored 2 subscriptions
+2025-04-18 22:10:27,687 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:10:27,689 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:10:27,691 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:10:27,691 - INFO - Scheduled daily compliment jobs
+2025-04-18 22:10:27,699 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:10:27,700 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:10:27,701 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:10:27,702 - INFO - Scheduler started
+2025-04-18 22:10:27,704 - INFO - Compliment scheduler started
+2025-04-18 22:10:27,706 - INFO - Бот запущен и готов к работе
+2025-04-18 22:10:27,724 - INFO - Health check: 2 users, 44 compliments available
+2025-04-18 22:11:29,431 - ERROR - Infinity polling: polling exited
+2025-04-18 22:11:29,431 - ERROR - Break infinity polling
+2025-04-18 22:11:29,431 - INFO - Scheduler has been shut down
+2025-04-18 22:11:29,431 - INFO - Scheduler stopped
+2025-04-18 22:11:29,431 - INFO - Бот завершил работу
+2025-04-18 22:12:05,215 - INFO - Database tables created/verified
+2025-04-18 22:12:05,216 - INFO - Database initialized at data\bot_database.db
+2025-04-18 22:12:05,545 - INFO - Restored 2 subscriptions
+2025-04-18 22:12:05,547 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:12:05,549 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:12:05,550 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:12:05,550 - INFO - Scheduled daily compliment jobs
+2025-04-18 22:12:05,557 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:12:05,558 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:12:05,559 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:12:05,559 - INFO - Scheduler started
+2025-04-18 22:12:05,561 - INFO - Compliment scheduler started
+2025-04-18 22:12:05,563 - INFO - Бот запущен и готов к работе
+2025-04-18 22:12:05,584 - INFO - Health check: 2 users, 44 compliments available
+2025-04-18 22:12:28,774 - INFO - Database tables created/verified
+2025-04-18 22:12:28,774 - INFO - Database initialized at data\bot_database.db
+2025-04-18 22:12:29,162 - INFO - Restored 2 subscriptions
+2025-04-18 22:12:29,164 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:12:29,166 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:12:29,168 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:12:29,168 - INFO - Scheduled daily compliment jobs
+2025-04-18 22:12:29,175 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:12:29,176 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:12:29,177 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:12:29,178 - INFO - Scheduler started
+2025-04-18 22:12:29,179 - INFO - Compliment scheduler started
+2025-04-18 22:12:29,181 - INFO - Бот запущен и готов к работе
+2025-04-18 22:12:29,196 - INFO - Health check: 2 users, 44 compliments available
+2025-04-18 22:12:39,441 - ERROR - Infinity polling: polling exited
+2025-04-18 22:12:39,441 - ERROR - Break infinity polling
+2025-04-18 22:12:39,441 - INFO - Scheduler has been shut down
+2025-04-18 22:12:39,441 - INFO - Scheduler stopped
+2025-04-18 22:12:39,441 - INFO - Бот завершил работу
+2025-04-18 22:16:29,932 - INFO - Database tables created/verified
+2025-04-18 22:16:29,932 - INFO - Database initialized at data\bot_database.db
+2025-04-18 22:16:30,298 - INFO - Restored 2 subscriptions
+2025-04-18 22:16:30,299 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:16:30,299 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:16:30,300 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:16:30,300 - INFO - Scheduled daily compliment jobs
+2025-04-18 22:16:30,301 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:16:30,303 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:16:30,303 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:16:30,303 - INFO - Scheduler started
+2025-04-18 22:16:30,304 - INFO - Compliment scheduler started
+2025-04-18 22:16:30,304 - INFO - Бот запущен и готов к работе
+2025-04-18 22:16:30,309 - INFO - Health check: 2 users, 44 compliments available
+2025-04-18 22:16:59,974 - ERROR - Infinity polling: polling exited
+2025-04-18 22:16:59,974 - ERROR - Break infinity polling
+2025-04-18 22:16:59,975 - INFO - Scheduler has been shut down
+2025-04-18 22:16:59,975 - INFO - Scheduler stopped
+2025-04-18 22:16:59,975 - INFO - Бот завершил работу
+2025-04-18 22:17:37,330 - INFO - Database tables created/verified
+2025-04-18 22:17:37,330 - INFO - Database initialized at data\bot_database.db
+2025-04-18 22:17:37,630 - INFO - Restored 2 subscriptions
+2025-04-18 22:17:37,633 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:17:37,635 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:17:37,636 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:17:37,637 - INFO - Scheduled daily compliment jobs
+2025-04-18 22:17:37,642 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:17:37,643 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:17:37,645 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:17:37,645 - INFO - Scheduler started
+2025-04-18 22:17:37,650 - INFO - Compliment scheduler started
+2025-04-18 22:17:37,652 - INFO - Бот запущен и готов к работе
+2025-04-18 22:17:37,672 - INFO - Health check: 2 users, 44 compliments available
+2025-04-18 22:17:46,412 - ERROR - Infinity polling: polling exited
+2025-04-18 22:17:46,412 - ERROR - Break infinity polling
+2025-04-18 22:17:46,413 - INFO - Scheduler has been shut down
+2025-04-18 22:17:46,414 - INFO - Scheduler stopped
+2025-04-18 22:17:46,415 - INFO - Бот завершил работу
+2025-04-18 22:19:28,184 - INFO - Database tables created/verified
+2025-04-18 22:19:28,184 - INFO - Database initialized at data\bot_database.db
+2025-04-18 22:19:28,711 - INFO - Restored 2 subscriptions
+2025-04-18 22:19:28,712 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:19:28,712 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:19:28,713 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:19:28,713 - INFO - Scheduled daily compliment jobs
+2025-04-18 22:19:28,714 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:19:28,715 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:19:28,715 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:19:28,715 - INFO - Scheduler started
+2025-04-18 22:19:28,716 - INFO - Compliment scheduler started
+2025-04-18 22:19:28,718 - INFO - Бот запущен и готов к работе
+2025-04-18 22:19:28,724 - INFO - Health check: 2 users, 44 compliments available
+2025-04-18 22:27:18,624 - INFO - Database tables created/verified
+2025-04-18 22:27:18,624 - INFO - Database initialized at data\bot_database.db
+2025-04-18 22:27:19,102 - INFO - Restored 2 subscriptions
+2025-04-18 22:27:19,104 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:27:19,106 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:27:19,107 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:27:19,108 - INFO - Scheduled daily compliment jobs
+2025-04-18 22:27:19,114 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:27:19,116 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:27:19,117 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:27:19,118 - INFO - Scheduler started
+2025-04-18 22:27:19,121 - INFO - Compliment scheduler started
+2025-04-18 22:27:19,123 - INFO - Бот запущен и готов к работе
+2025-04-18 22:27:19,142 - INFO - Health check: 2 users, 44 compliments available
+2025-04-18 22:29:04,576 - ERROR - Infinity polling: polling exited
+2025-04-18 22:29:04,577 - ERROR - Break infinity polling
+2025-04-18 22:29:04,578 - INFO - Scheduler has been shut down
+2025-04-18 22:29:04,579 - INFO - Scheduler stopped
+2025-04-18 22:29:04,580 - INFO - Бот завершил работу
+2025-04-18 22:29:05,394 - INFO - Database tables created/verified
+2025-04-18 22:29:05,394 - INFO - Database initialized at data\bot_database.db
+2025-04-18 22:29:05,796 - INFO - Restored 2 subscriptions
+2025-04-18 22:29:05,799 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:29:05,801 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:29:05,802 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:29:05,802 - INFO - Scheduled daily compliment jobs
+2025-04-18 22:29:05,808 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:29:05,809 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:29:05,811 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:29:05,811 - INFO - Scheduler started
+2025-04-18 22:29:05,814 - INFO - Compliment scheduler started
+2025-04-18 22:29:05,817 - INFO - Бот запущен и готов к работе
+2025-04-18 22:29:05,834 - INFO - Health check: 2 users, 44 compliments available
+2025-04-18 22:31:14,921 - ERROR - Infinity polling: polling exited
+2025-04-18 22:31:14,921 - ERROR - Break infinity polling
+2025-04-18 22:31:14,921 - INFO - Scheduler has been shut down
+2025-04-18 22:31:14,921 - INFO - Scheduler stopped
+2025-04-18 22:31:14,921 - INFO - Бот завершил работу
+2025-04-18 22:31:15,852 - INFO - Database tables created/verified
+2025-04-18 22:31:15,852 - INFO - Database initialized at data\bot_database.db
+2025-04-18 22:31:16,234 - INFO - Restored 2 subscriptions
+2025-04-18 22:31:16,235 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:31:16,235 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:31:16,235 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:31:16,235 - INFO - Scheduled daily compliment jobs
+2025-04-18 22:31:16,237 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:31:16,238 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:31:16,238 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:31:16,238 - INFO - Scheduler started
+2025-04-18 22:31:16,238 - INFO - Compliment scheduler started
+2025-04-18 22:31:16,239 - INFO - Бот запущен и готов к работе
+2025-04-18 22:31:16,246 - INFO - Health check: 2 users, 44 compliments available
+2025-04-18 22:31:18,186 - ERROR - Infinity polling exception: name 'logging' is not defined
+2025-04-18 22:31:18,188 - ERROR - Exception traceback:
+Traceback (most recent call last):
+  File "C:\Users\mokun\PycharmProjects\TelegramBot\.venv\handlers\user_commands.py", line 215, in handle_weather_command
+    forecast = get_daily_forecast(WEATHER)
+               ^^^^^^^^^^^^^^^^^^
+NameError: name 'get_daily_forecast' is not defined
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\mokun\PycharmProjects\TelegramBot\.venv\Lib\site-packages\telebot\__init__.py", line 1110, in infinity_polling
+    self.polling(non_stop=True, timeout=timeout, long_polling_timeout=long_polling_timeout,
+  File "C:\Users\mokun\PycharmProjects\TelegramBot\.venv\Lib\site-packages\telebot\__init__.py", line 1198, in polling
+    self.__threaded_polling(non_stop=non_stop, interval=interval, timeout=timeout, long_polling_timeout=long_polling_timeout,
+  File "C:\Users\mokun\PycharmProjects\TelegramBot\.venv\Lib\site-packages\telebot\__init__.py", line 1273, in __threaded_polling
+    raise e
+  File "C:\Users\mokun\PycharmProjects\TelegramBot\.venv\Lib\site-packages\telebot\__init__.py", line 1235, in __threaded_polling
+    self.worker_pool.raise_exceptions()
+  File "C:\Users\mokun\PycharmProjects\TelegramBot\.venv\Lib\site-packages\telebot\util.py", line 150, in raise_exceptions
+    raise self.exception_info
+  File "C:\Users\mokun\PycharmProjects\TelegramBot\.venv\Lib\site-packages\telebot\util.py", line 93, in run
+    task(*args, **kwargs)
+  File "C:\Users\mokun\PycharmProjects\TelegramBot\.venv\Lib\site-packages\telebot\__init__.py", line 9233, in _run_middlewares_and_handler
+    result = handler['function'](message)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mokun\PycharmProjects\TelegramBot\.venv\decorators.py", line 9, in wrapper
+    return func(message, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mokun\PycharmProjects\TelegramBot\.venv\handlers\user_commands.py", line 222, in handle_weather_command
+    logging.error(f"Weather command failed: {str(e)}")
+    ^^^^^^^
+NameError: name 'logging' is not defined
+
+2025-04-18 22:31:30,209 - ERROR - Infinity polling: polling exited
+2025-04-18 22:31:30,210 - ERROR - Break infinity polling
+2025-04-18 22:31:30,211 - INFO - Scheduler has been shut down
+2025-04-18 22:31:30,212 - INFO - Scheduler stopped
+2025-04-18 22:31:30,213 - INFO - Бот завершил работу
+2025-04-18 22:31:48,815 - INFO - Database tables created/verified
+2025-04-18 22:31:48,815 - INFO - Database initialized at data\bot_database.db
+2025-04-18 22:31:49,132 - INFO - Restored 2 subscriptions
+2025-04-18 22:31:49,133 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:31:49,133 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:31:49,133 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:31:49,133 - INFO - Scheduled daily compliment jobs
+2025-04-18 22:31:49,135 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:31:49,135 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:31:49,135 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:31:49,135 - INFO - Scheduler started
+2025-04-18 22:31:49,136 - INFO - Compliment scheduler started
+2025-04-18 22:31:49,136 - INFO - Бот запущен и готов к работе
+2025-04-18 22:31:49,141 - INFO - Health check: 2 users, 44 compliments available
+2025-04-18 22:32:58,606 - ERROR - Infinity polling: polling exited
+2025-04-18 22:32:58,607 - ERROR - Break infinity polling
+2025-04-18 22:32:58,609 - INFO - Scheduler has been shut down
+2025-04-18 22:32:58,610 - INFO - Scheduler stopped
+2025-04-18 22:32:58,611 - INFO - Бот завершил работу
+2025-04-18 22:32:59,664 - INFO - Database tables created/verified
+2025-04-18 22:32:59,664 - INFO - Database initialized at data\bot_database.db
+2025-04-18 22:33:00,048 - INFO - Restored 2 subscriptions
+2025-04-18 22:33:00,049 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:33:00,049 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:33:00,049 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:33:00,049 - INFO - Scheduled daily compliment jobs
+2025-04-18 22:33:00,051 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:33:00,051 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:33:00,052 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:33:00,052 - INFO - Scheduler started
+2025-04-18 22:33:00,053 - INFO - Compliment scheduler started
+2025-04-18 22:33:00,053 - INFO - Бот запущен и готов к работе
+2025-04-18 22:33:00,060 - INFO - Health check: 2 users, 44 compliments available
+2025-04-18 22:34:03,415 - ERROR - Infinity polling: polling exited
+2025-04-18 22:34:03,416 - ERROR - Break infinity polling
+2025-04-18 22:34:03,416 - INFO - Scheduler has been shut down
+2025-04-18 22:34:03,416 - INFO - Scheduler stopped
+2025-04-18 22:34:03,416 - INFO - Бот завершил работу
+2025-04-18 22:34:06,928 - INFO - Database tables created/verified
+2025-04-18 22:34:06,929 - INFO - Database initialized at data\bot_database.db
+2025-04-18 22:34:07,264 - INFO - Restored 2 subscriptions
+2025-04-18 22:34:07,265 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:34:07,265 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:34:07,265 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:34:07,266 - INFO - Scheduled daily compliment jobs
+2025-04-18 22:34:07,268 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:34:07,268 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:34:07,269 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:34:07,269 - INFO - Scheduler started
+2025-04-18 22:34:07,270 - INFO - Compliment scheduler started
+2025-04-18 22:34:07,270 - INFO - Бот запущен и готов к работе
+2025-04-18 22:34:07,280 - INFO - Health check: 2 users, 44 compliments available
+2025-04-18 22:34:15,265 - ERROR - Infinity polling: polling exited
+2025-04-18 22:34:15,266 - ERROR - Break infinity polling
+2025-04-18 22:34:15,267 - INFO - Scheduler has been shut down
+2025-04-18 22:34:15,267 - INFO - Scheduler stopped
+2025-04-18 22:34:15,269 - INFO - Бот завершил работу
+2025-04-18 22:35:37,605 - INFO - Database tables created/verified
+2025-04-18 22:35:37,606 - INFO - Database initialized at data\bot_database.db
+2025-04-18 22:35:38,029 - INFO - Restored 2 subscriptions
+2025-04-18 22:35:38,030 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:35:38,031 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:35:38,031 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 22:35:38,031 - INFO - Scheduled daily compliment jobs
+2025-04-18 22:35:38,032 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:35:38,032 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:35:38,032 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 22:35:38,034 - INFO - Scheduler started
+2025-04-18 22:35:38,034 - INFO - Compliment scheduler started
+2025-04-18 22:35:38,034 - INFO - Бот запущен и готов к работе
+2025-04-18 22:35:38,038 - INFO - Health check: 2 users, 44 compliments available
+2025-04-18 22:36:29,792 - ERROR - Infinity polling: polling exited
+2025-04-18 22:36:29,793 - ERROR - Break infinity polling
+2025-04-18 22:36:29,793 - INFO - Scheduler has been shut down
+2025-04-18 22:36:29,795 - INFO - Scheduler stopped
+2025-04-18 22:36:29,795 - INFO - Бот завершил работу
+2025-04-18 23:31:02,729 - INFO - Database tables created/verified
+2025-04-18 23:31:02,730 - INFO - Database initialized at data\bot_database.db
+2025-04-18 23:31:03,158 - INFO - Restored 2 subscriptions
+2025-04-18 23:31:03,162 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 23:31:03,164 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 23:31:03,165 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 23:31:03,166 - INFO - Scheduled daily compliment jobs
+2025-04-18 23:31:03,173 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 23:31:03,174 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 23:31:03,175 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 23:31:03,175 - INFO - Scheduler started
+2025-04-18 23:31:03,177 - INFO - Compliment scheduler started
+2025-04-18 23:31:03,179 - INFO - Бот запущен и готов к работе
+2025-04-18 23:31:03,195 - INFO - Health check: 2 users, 44 compliments available
+2025-04-18 23:33:23,920 - ERROR - Infinity polling: polling exited
+2025-04-18 23:33:23,920 - ERROR - Break infinity polling
+2025-04-18 23:33:23,920 - INFO - Scheduler has been shut down
+2025-04-18 23:33:23,920 - INFO - Scheduler stopped
+2025-04-18 23:33:23,921 - INFO - Бот завершил работу
+2025-04-18 23:39:45,304 - INFO - Database tables created/verified
+2025-04-18 23:39:45,304 - INFO - Database initialized at data\bot_database.db
+2025-04-18 23:39:45,645 - INFO - Restored 2 subscriptions
+2025-04-18 23:39:45,649 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 23:39:45,649 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 23:39:45,651 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 23:39:45,651 - INFO - Scheduled daily compliment jobs
+2025-04-18 23:39:45,658 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 23:39:45,660 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 23:39:45,661 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 23:39:45,662 - INFO - Scheduler started
+2025-04-18 23:39:45,664 - INFO - Compliment scheduler started
+2025-04-18 23:39:45,666 - INFO - Бот запущен и готов к работе
+2025-04-18 23:39:45,684 - INFO - Health check: 2 users, 44 compliments available
+2025-04-18 23:43:13,715 - INFO - Database tables created/verified
+2025-04-18 23:43:13,715 - INFO - Database initialized at data\bot_database.db
+2025-04-18 23:43:14,123 - INFO - Restored 2 subscriptions
+2025-04-18 23:43:14,126 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 23:43:14,128 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 23:43:14,129 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 23:43:14,130 - INFO - Scheduled daily compliment jobs
+2025-04-18 23:43:14,136 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 23:43:14,138 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 23:43:14,139 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 23:43:14,140 - INFO - Scheduler started
+2025-04-18 23:43:14,142 - INFO - Compliment scheduler started
+2025-04-18 23:43:14,144 - INFO - Бот запущен и готов к работе
+2025-04-18 23:43:14,164 - INFO - Health check: 2 users, 44 compliments available
+2025-04-18 23:44:21,401 - ERROR - Infinity polling: polling exited
+2025-04-18 23:44:21,402 - ERROR - Break infinity polling
+2025-04-18 23:44:21,402 - INFO - Scheduler has been shut down
+2025-04-18 23:44:21,403 - INFO - Scheduler stopped
+2025-04-18 23:44:21,404 - INFO - Бот завершил работу
+2025-04-18 23:44:33,310 - INFO - Database tables created/verified
+2025-04-18 23:44:33,310 - INFO - Database initialized at data\bot_database.db
+2025-04-18 23:44:33,653 - INFO - Restored 2 subscriptions
+2025-04-18 23:44:33,654 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 23:44:33,656 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 23:44:33,658 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 23:44:33,658 - INFO - Scheduled daily compliment jobs
+2025-04-18 23:44:33,663 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 23:44:33,665 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 23:44:33,666 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 23:44:33,667 - INFO - Scheduler started
+2025-04-18 23:44:33,671 - INFO - Compliment scheduler started
+2025-04-18 23:44:33,673 - INFO - Бот запущен и готов к работе
+2025-04-18 23:44:33,683 - INFO - Health check: 2 users, 44 compliments available
+2025-04-18 23:46:00,044 - ERROR - Infinity polling: polling exited
+2025-04-18 23:46:00,044 - ERROR - Break infinity polling
+2025-04-18 23:46:00,044 - INFO - Scheduler has been shut down
+2025-04-18 23:46:00,044 - INFO - Scheduler stopped
+2025-04-18 23:46:00,044 - INFO - Бот завершил работу
+2025-04-18 23:48:14,686 - INFO - Database tables created/verified
+2025-04-18 23:48:14,687 - INFO - Database initialized at data\bot_database.db
+2025-04-18 23:48:15,065 - INFO - Restored 2 subscriptions
+2025-04-18 23:48:15,068 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 23:48:15,069 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 23:48:15,070 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-18 23:48:15,070 - INFO - Scheduled daily compliment jobs
+2025-04-18 23:48:15,075 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 23:48:15,076 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 23:48:15,077 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-18 23:48:15,078 - INFO - Scheduler started
+2025-04-18 23:48:15,080 - INFO - Compliment scheduler started
+2025-04-18 23:48:15,082 - INFO - Бот запущен и готов к работе
+2025-04-18 23:48:15,098 - INFO - Health check: 2 users, 44 compliments available
+2025-04-18 23:52:34,052 - ERROR - Infinity polling: polling exited
+2025-04-18 23:52:34,052 - ERROR - Break infinity polling
+2025-04-18 23:52:34,053 - INFO - Scheduler has been shut down
+2025-04-18 23:52:34,053 - INFO - Scheduler stopped
+2025-04-18 23:52:34,054 - INFO - Бот завершил работу
+2025-04-19 00:18:38,972 - INFO - Database tables created/verified
+2025-04-19 00:18:38,972 - INFO - Database initialized at data\bot_database.db
+2025-04-19 00:18:38,980 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-19 00:18:38,980 - INFO - Successfully scheduled daily weather for 8:00 AM
+2025-04-19 00:18:39,290 - INFO - Restored 2 subscriptions
+2025-04-19 00:18:39,291 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-19 00:18:39,291 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-19 00:18:39,292 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-19 00:18:39,292 - INFO - Scheduled daily compliment jobs
+2025-04-19 00:18:39,294 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-19 00:18:39,294 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-19 00:18:39,294 - INFO - Added job "ComplimentScheduler.send_compliments" to job store "default"
+2025-04-19 00:18:39,294 - INFO - Scheduler started
+2025-04-19 00:18:39,295 - INFO - Compliment scheduler started
+2025-04-19 00:18:39,295 - INFO - Бот запущен и готов к работе
+2025-04-19 00:18:39,300 - INFO - Health check: 2 users, 44 compliments available
+2025-04-19 00:22:31,514 - ERROR - Infinity polling: polling exited
+2025-04-19 00:22:31,515 - ERROR - Break infinity polling
+2025-04-19 00:22:31,515 - INFO - Scheduler has been shut down
+2025-04-19 00:22:31,517 - INFO - Scheduler stopped
+2025-04-19 00:22:31,517 - INFO - Бот завершил работу
+2025-04-19 00:22:32,153 - INFO - Database tables created/verified
+2025-04-19 00:22:32,153 - INFO - Database initialized at data\bot_database.db
+2025-04-19 00:22:32,161 - INFO - Initializing scheduler...
+2025-04-19 00:22:32,173 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-04-19 00:22:32,173 - INFO - Scheduled test weather job to run every minute
+2025-04-19 00:22:32,175 - INFO - Added job "ComplimentScheduler.send_daily_weather" to job store "default"
+2025-04-19 00:22:32,175 - INFO - Scheduler started
+2025-04-19 00:22:32,176 - INFO - Scheduler started successfully
+2025-04-19 00:22:32,176 - INFO - Running job "ComplimentScheduler.send_daily_weather (trigger: interval[0:01:00], next run at: 2025-04-19 00:22:32 MSK)" (scheduled at 2025-04-19 00:22:32.162515+03:00)
+2025-04-19 00:22:32,176 - INFO - Weather job started execution
+2025-04-19 00:22:32,177 - INFO - Fetching forecast for Москва
+2025-04-19 00:22:32,452 - INFO - Found 2 subscribed users
+2025-04-19 00:22:32,452 - INFO - Sending to user 5236847464
+2025-04-19 00:22:32,453 - INFO - Restored 2 subscriptions
+2025-04-19 00:22:32,455 - WARNING - Scheduler already running
+2025-04-19 00:22:32,458 - INFO - Бот запущен и готов к работе
+2025-04-19 00:22:32,468 - INFO - Health check: 2 users, 44 compliments available
+2025-04-19 00:22:32,660 - INFO - Successfully sent to 5236847464
+2025-04-19 00:22:32,661 - INFO - Sending to user 7522466558
+2025-04-19 00:22:32,753 - INFO - Successfully sent to 7522466558
+2025-04-19 00:22:32,753 - INFO - Job "ComplimentScheduler.send_daily_weather (trigger: interval[0:01:00], next run at: 2025-04-19 00:23:32 MSK)" executed successfully
+2025-04-19 00:23:32,170 - INFO - Running job "ComplimentScheduler.send_daily_weather (trigger: interval[0:01:00], next run at: 2025-04-19 00:24:32 MSK)" (scheduled at 2025-04-19 00:23:32.162515+03:00)
+2025-04-19 00:23:32,171 - INFO - Weather job started execution
+2025-04-19 00:23:32,172 - INFO - Fetching forecast for Москва
+2025-04-19 00:23:32,293 - INFO - Found 2 subscribed users
+2025-04-19 00:23:32,293 - INFO - Sending to user 5236847464
+2025-04-19 00:23:32,381 - INFO - Successfully sent to 5236847464
+2025-04-19 00:23:32,381 - INFO - Sending to user 7522466558
+2025-04-19 00:23:32,477 - INFO - Successfully sent to 7522466558
+2025-04-19 00:23:32,477 - INFO - Job "ComplimentScheduler.send_daily_weather (trigger: interval[0:01:00], next run at: 2025-04-19 00:24:32 MSK)" executed successfully
+2025-04-19 00:24:32,175 - INFO - Running job "ComplimentScheduler.send_daily_weather (trigger: interval[0:01:00], next run at: 2025-04-19 00:25:32 MSK)" (scheduled at 2025-04-19 00:24:32.162515+03:00)
+2025-04-19 00:24:32,175 - INFO - Weather job started execution
+2025-04-19 00:24:32,175 - INFO - Fetching forecast for Москва
+2025-04-19 00:24:32,300 - INFO - Found 2 subscribed users
+2025-04-19 00:24:32,300 - INFO - Sending to user 5236847464
+2025-04-19 00:24:32,383 - INFO - Successfully sent to 5236847464
+2025-04-19 00:24:32,383 - INFO - Sending to user 7522466558
+2025-04-19 00:24:32,510 - INFO - Successfully sent to 7522466558
+2025-04-19 00:24:32,511 - INFO - Job "ComplimentScheduler.send_daily_weather (trigger: interval[0:01:00], next run at: 2025-04-19 00:25:32 MSK)" executed successfully
+2025-04-19 00:24:41,969 - ERROR - Infinity polling: polling exited
+2025-04-19 00:24:41,970 - ERROR - Break infinity polling
+2025-04-19 00:24:41,972 - INFO - Scheduler has been shut down
+2025-04-19 00:24:41,973 - INFO - Scheduler stopped
+2025-04-19 00:24:41,973 - INFO - Бот завершил работу

@@ -7,6 +7,7 @@ load_dotenv()
 
 TOKEN = os.getenv("BOT_TOKEN")
 WEATHER = os.getenv("WEATHER_API")
+DEFAULT_CITY = "Москва"
 ADMIN_ID = 7522466558
 MIUS_ID = 5236847464
 
