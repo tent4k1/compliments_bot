@@ -20,11 +20,24 @@ class ComplimentScheduler:
         self.scheduler = BackgroundScheduler(timezone=timezone('Europe/Moscow'))
         self._running = False
         self.logger = logging.getLogger(__name__)
-        self._initialize_default_compliments()
         self.logger.info("Initializing scheduler...")
-        self._schedule_weather()
-        self.scheduler.start()
         self.logger.info("Scheduler started successfully")
+
+        try:
+            self._initialize_default_compliments()
+            self.schedule_daily_jobs()
+            self._schedule_weather()
+
+            if not self.scheduler.running:
+                self.scheduler.start()
+                self._running = True
+                self.logger.info("Scheduler started successfully")
+            else:
+                self.logger.warning("Scheduler was already running")
+
+        except Exception as e:
+            self.logger.critical(f"Failed to initialize scheduler: {e}")
+            raise
 
     # ========== Compliments Methods ==========
     def _initialize_default_compliments(self) -> None:
