@@ -1,11 +1,13 @@
 import logging
 import requests
+from datetime import timedelta
 from pytz import timezone
 from datetime import datetime, time as dt_time
 from threading import Thread
 from typing import Dict, Optional, Tuple
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.date import DateTrigger
 from config import WEATHER, WEATHER, DEFAULT_CITY
 from database import Database
 
@@ -267,6 +269,20 @@ class ComplimentScheduler:
                     self.logger.error(f"Failed to send to user {user_id}: {e}")
         except Exception as e:
             self.logger.error(f"Weather job error: {e}")
+
+    def send_event_reminder(self, user_id, event_data):
+        self.bot.send_message(user_id, f"🔔 Напоминание о событии: {event_data['event_description']} в {event_data['time']}")
+
+    def schedule_event_reminder(self, event_data, user_id):
+        event_time = datetime(year=event_data['year'], month=event_data['month'], day=event_data['day'],
+                              hour=int(event_data['time'].split(":")[0]), minute=int(event_data['time'].split(":")[1]))
+
+        if event_data.get('repeat', 0) == 1:
+            self.scheduler.add_job(self.send_event_reminder, 'interval', days=1, start_date=event_time,
+                              args=[user_id, event_data])
+        else:
+            self.scheduler.add_job(self.send_event_reminder, 'date', run_date=event_time,
+                              args=[user_id, event_data])
 
     def stop(self):
         """Остановка планировщика"""

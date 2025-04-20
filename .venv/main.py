@@ -1,3 +1,4 @@
+from sched import scheduler
 import telebot
 import logging
 from threading import Thread
@@ -18,6 +19,12 @@ logging.basicConfig(
     ]
 )
 
+logging.basicConfig(level=logging.DEBUG)
+
+# Включаем логирование для бота
+logger = logging.getLogger("telebot")
+logger.setLevel(logging.DEBUG)
+
 def run_health_check(scheduler):
     """Фоновая проверка состояния бота"""
     while True:
@@ -31,6 +38,12 @@ def run_health_check(scheduler):
         except Exception as e:
             logging.error(f"Health check failed: {e}")
             time.sleep(60)
+def load_events():
+    scheduler = ComplimentScheduler(bot, db)
+    events = db.get_all_events()
+    for event in events:
+        scheduler.schedule_event_reminder(event)
+        print(f"Загружено событие: {event[1]}-{event[2]:02d}-{event[3]:02d} в {event[4]}: {event[5]}")
 
 def main():
     try:

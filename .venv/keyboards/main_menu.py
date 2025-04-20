@@ -12,6 +12,7 @@ def main_menu():
     )
     markup.add(
         KeyboardButton('🌡 Погода'),
+        KeyboardButton("📅 Календарь"),
     )
 
     return markup

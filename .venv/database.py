@@ -5,6 +5,8 @@ from datetime import datetime
 import logging
 from typing import Optional, Tuple, List, Dict, Set
 
+from pydantic.v1.utils import sequence_like
+
 # Настройка логирования
 logging.basicConfig(
     level=logging.INFO,
@@ -14,7 +16,11 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
+logging.basicConfig(level=logging.DEBUG)
 
+# Включаем логирование для бота
+logger = logging.getLogger("telebot")
+logger.setLevel(logging.DEBUG)
 
 class Database:
     _instance = None
@@ -95,12 +101,12 @@ class Database:
             """,
             """
             CREATE TABLE IF NOT EXISTS wishlist (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            wish_text TEXT NOT NULL,
-            is_fulfilled BOOLEAN DEFAULT FALSE,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            fulfilled_at TIMESTAMP
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                wish_text TEXT NOT NULL,
+                is_fulfilled BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                fulfilled_at TIMESTAMP
             )
             """,
             """
@@ -113,6 +119,19 @@ class Database:
             """,
             """
             CREATE INDEX IF NOT EXISTS idx_sent_compliments_time ON sent_compliments(sent_at)
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                year INTEGER DEFAULT 2025,
+                month TEXT,
+                day INTEGER,
+                time TEXT,
+                event_description TEXT,
+                all_day INTEGER DEFAULT 0,
+                repeat INTEGER DEFAULT 0
+            )
             """
         ]
 
@@ -632,3 +651,61 @@ class Database:
                 'sent_today': 0,
                 'last_sent_time': None
             }
+
+    def save_event(self, user_id, year, month, day, time, event_description, all_day=0, repeat=0):
+        if self.conn is None:
+            self.conn()
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM events")
+        count = cursor.fetchone()[0]
+        print(f"Number of events in DB: {count}")
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute('''
+                        INSERT INTO events (user_id, year, month, day, time, event_description, all_day, repeat)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (user_id, year, month, day, time, event_description, all_day, repeat))
+            self.conn.commit()
+            print("Event saved successfully!")
+        except Exception as e:
+            print(f"Error saving event: {e}")
+
+    def get_all_events(self, *, user_id=None):
+        cursor = self.conn.cursor()
+        if user_id:
+            cursor.execute("SELECT id, year, month, day, time, event_description FROM events WHERE user_id=?",
+                           (user_id,))
+        else:
+            cursor.execute("SELECT id, year, month, day, time, event_description FROM events")
+        return cursor.fetchall()
+
+    def delete_event(self, id):
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute("DELETE FROM events WHERE id = ?", (id,))
+            self.conn.commit()
+            return cursor.rowcount > 0  # Возвращаем True, если событие было удалено
+        except Exception as e:
+            print(f"Ошибка при удалении события: {e}")
+            return False
+
+    def update_event(self, id, year, month, day, time, event_, all_day=0, repeat=0):
+        if self.conn is None:
+            self.conn()
+        cursor = self.conn.cursor()
+        cursor.execute('''UPDATE events
+                          SET year = ?, month = ?, day = ?, time = ?, event_description = ?, all_day = ?, repeat = ?
+                          WHERE id = ?''',
+                       (year, month, day, time, event_description, all_day, repeat, id))
+        self.conn.commit()
+
+    def save_event(self, user_id, year, month, day, time, event_description, all_day, repeat):
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute('''
+                INSERT INTO events (user_id, year, month, day, time, event_description, all_day, repeat)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (user_id, year, month, day, time, event_description, all_day, repeat))
+            self.conn.commit()
+        except Exception as e:
+            print(f"Error during saving event: {e}")

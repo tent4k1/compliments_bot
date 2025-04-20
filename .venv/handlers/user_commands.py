@@ -1,15 +1,36 @@
 import os
 from datetime import datetime
+from sched import scheduler
+
 import requests
+import logging
+import calendar
 from telebot import TeleBot, types
 from decorators import log_command
 from keyboards.main_menu import main_menu
 from database import Database
 from config import WEATHER, DEFAULT_CITY
+from utils.scheduler import ComplimentScheduler
 
 db = Database()
+user_event_data = {}
+event_data = {
+    'year': 2025,
+    'month': None,
+    'day': None,
+    'time': None,
+    'event_description': None,
+    'all_day': 0,
+    'repeat': 0
+}
+logging.basicConfig(level=logging.DEBUG)
+
+# Включаем логирование для бота
+logger = logging.getLogger("telebot")
+logger.setLevel(logging.DEBUG)
 
 def setup_user_commands(bot: TeleBot, scheduler):
+
     @bot.message_handler(commands=['start'])
     @log_command
     # ========== Main ==========
@@ -65,7 +86,7 @@ def setup_user_commands(bot: TeleBot, scheduler):
         markup.add(btn_check, btn_subs, btn_unsubs, btn_back)
         return markup
 
-    # Обработчик кнопки "Вишлист" в главном меню
+    # Обработчик кнопки "Подписка" в главном меню
     @bot.message_handler(func=lambda msg: msg.text == '☑ Подписка')
     @log_command
     def subscribe_menu(message):
@@ -287,3 +308,317 @@ def setup_user_commands(bot: TeleBot, scheduler):
         except KeyError as e:
             logging.error(f"Missing key in weather data: {str(e)}")
             raise Exception("Некорректные данные о погоде")
+
+    def get_calendar_menu():
+        markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
+        btn_add_rem = types.KeyboardButton('📆 Добавить событие')
+        btn_my_rem = types.KeyboardButton('📋 Мои события')
+        btn_del_rem = types.KeyboardButton('❌ Удалить событие')
+        btn_back = types.KeyboardButton('🔙 Назад')
+
+        markup.add(btn_my_rem, btn_add_rem, btn_back, btn_del_rem)
+        return markup
+
+    @bot.message_handler(func=lambda message: message.text == "🔙 Назад")
+    def handle_back(message):
+        bot.send_message(message.chat.id, "Вы вернулись в главное меню.", reply_markup=main_menu())
+
+    @bot.message_handler(func=lambda message: message.text == "📅 Календарь")
+    def handle_calendar_menu(message):
+        bot.send_message(message.chat.id, "🗓 Меню календаря:", reply_markup=get_calendar_menu())
+
+    @bot.message_handler(func=lambda message: message.text == "📆 Добавить событие")
+    def handle_add_event(message):
+        bot.send_message(message.chat.id, "Выберите год:", reply_markup=get_year_menu())
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("year_"))
+    def handle_year_selection(call):
+        user_id = call.message.chat.id
+        selected_year = int(call.data.split("_")[1])
+
+        # Убедитесь, что словарь для пользователя существует
+        if user_id not in user_event_data:
+            user_event_data[user_id] = {}
+
+        user_event_data[user_id]['year'] = selected_year
+        bot.send_message(call.message.chat.id, f"Вы выбрали {selected_year} год. Теперь выберите месяц:",
+                         reply_markup=get_month_menu())
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('month_'))
+    def handle_month_selection(call):
+        user_id = call.message.chat.id
+        selected_month = int(call.data.split('_')[1])
+
+        user_event_data[user_id]['month'] = selected_month
+        bot.send_message(call.message.chat.id, f"Вы выбрали месяц: {selected_month}. Теперь выберите день:",
+                         reply_markup=get_day_menu(selected_month, user_event_data[user_id]['year']))
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('day_'))
+    def handle_day_selection(call):
+        user_id = call.message.chat.id
+        selected_day = int(call.data.split('_')[1])
+
+        user_event_data[user_id]['day'] = selected_day
+        bot.send_message(call.message.chat.id, f"Вы выбрали день: {selected_day}. Теперь выберите время:",
+                         reply_markup=get_time_menu())
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('time_'))
+    def handle_time_selection(call):
+        user_id = call.message.chat.id
+        selected = call.data.split('_')[1]
+
+        if selected == 'allday':
+            user_event_data[user_id]['time'] = '08:00'
+            user_event_data[user_id]['all_day'] = 1
+        else:
+            user_event_data[user_id]['time'] = selected
+            user_event_data[user_id]['all_day'] = 0
+
+        bot.send_message(call.message.chat.id,
+                         f"Вы выбрали время: {user_event_data[user_id]['time']}. Хотите, чтобы событие повторялось?",
+                         reply_markup=get_repeat_menu())
+
+    @bot.message_handler(func=lambda message: message.text == "📋 Мои события")
+    def handle_view_events(message):
+        user_id = message.from_user.id
+        events = db.get_all_events(user_id=user_id)
+
+        if not events:
+            bot.send_message(message.chat.id, "У вас нет сохранённых событий.")
+            return
+
+        for event in events:
+            id = event[0]
+            year = event[1]
+            month = event[2]
+            day = event[3]
+            time = event[4]
+            description = event[5]
+            repeat = event[6] if len(event) > 6 else 0
+
+            # Формирование даты
+            if year and month and day:
+                date_str = f"{int(year)}-{int(month):02d}-{int(day):02d}"
+            else:
+                date_str = "⏰ Повторяется ежедневно" if repeat else "❓ Дата не указана"
+
+            text = f"📅 ID: {id} | {date_str} в {time}\n📝 {description}"
+
+            # Кнопка удаления
+            markup = types.InlineKeyboardMarkup()
+            markup.add(types.InlineKeyboardButton("❌ Удалить", callback_data=f"delete_{id}"))
+
+            bot.send_message(message.chat.id, text, reply_markup=markup)
+
+    @bot.callback_query_handler(func=lambda call: call.data in ["repeat_daily", "repeat_once"])
+    def handle_repeat_selection(call):
+        user_id = call.message.chat.id
+        user_event_data[user_id]['repeat'] = 1 if call.data == "repeat_daily" else 0
+        bot.send_message(call.message.chat.id, "✏️ Введите описание события:")
+
+    @bot.message_handler(
+        func=lambda message: message.text and user_event_data.get(message.chat.id, {}).get('repeat') is not None)
+    def handle_event_description(message):
+        user_id = message.chat.id
+        event_description = message.text.strip()
+
+        if user_id not in user_event_data:
+            user_event_data[user_id] = {}
+
+        # Убедитесь, что все необходимые данные для события есть
+        if 'year' not in user_event_data[user_id]:
+            bot.send_message(message.chat.id, "⛔ Пожалуйста, сначала выберите год для события.")
+            return
+        if 'month' not in user_event_data[user_id]:
+            bot.send_message(message.chat.id, "⛔ Пожалуйста, сначала выберите месяц для события.")
+            return
+        if 'day' not in user_event_data[user_id]:
+            bot.send_message(message.chat.id, "⛔ Пожалуйста, сначала выберите день для события.")
+            return
+        if 'time' not in user_event_data[user_id]:
+            bot.send_message(message.chat.id, "⛔ Пожалуйста, сначала выберите время для события.")
+            return
+
+        # Сохраняем описание события
+        user_event_data[user_id]['event_description'] = event_description
+
+        try:
+            # Сохраняем данные события в базе данных
+            db.save_event(
+                user_id=user_id,
+                year=user_event_data[user_id]['year'],
+                month=user_event_data[user_id]['month'],
+                day=user_event_data[user_id]['day'],
+                time=user_event_data[user_id]['time'],
+                event_description=user_event_data[user_id]['event_description'],
+                all_day=user_event_data[user_id].get('all_day', 0),
+                repeat=user_event_data[user_id].get('repeat', 0)
+            )
+            bot.send_message(message.chat.id, "✅ Событие сохранено!")
+
+            # Планируем напоминание
+            scheduler = ComplimentScheduler(bot, db)
+            scheduler.schedule_event_reminder(user_event_data[user_id], user_id)
+
+            # Очищаем данные пользователя после сохранения
+            del user_event_data[user_id]
+
+        except Exception as e:
+            print(f"Ошибка при сохранении события: {e}")
+            bot.send_message(message.chat.id, "❌ Произошла ошибка при сохранении события.")
+
+    def get_year_menu(start_year=None, years_forward=3):
+        if start_year is None:
+            start_year = datetime.now().year
+
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        buttons = [
+            types.InlineKeyboardButton(str(year), callback_data=f"year_{year}")
+            for year in range(start_year, start_year + years_forward)
+        ]
+        markup.add(*buttons)
+        markup.add(types.InlineKeyboardButton("🔙 Назад", callback_data="main_menu"))
+        return markup
+
+    @bot.callback_query_handler(func=lambda call: call.data == "back_to_years")
+    def back_to_years(call):
+        bot.send_message(call.message.chat.id, "Выберите год:", reply_markup=get_year_menu())
+
+    def get_month_menu():
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        months = [
+            ('Январь', '01'), ('Февраль', '02'), ('Март', '03'),
+            ('Апрель', '04'), ('Май', '05'), ('Июнь', '06'),
+            ('Июль', '07'), ('Август', '08'), ('Сентябрь', '09'),
+            ('Октябрь', '10'), ('Ноябрь', '11'), ('Декабрь', '12')
+        ]
+        buttons = [types.InlineKeyboardButton(name, callback_data=f'month_{num}') for name, num in months]
+        markup.add(*buttons)
+        markup.add(types.InlineKeyboardButton("🔙 Назад", callback_data="back_to_years"))
+        return markup
+
+    @bot.callback_query_handler(func=lambda call: call.data == "back_to_months")
+    def back_to_months(call):
+        bot.send_message(call.message.chat.id, "Выберите месяц:", reply_markup=get_month_menu())
+
+    def get_day_menu(month: int, year: int):
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        num_days = calendar.monthrange(year, month)[1]
+        buttons = [
+            types.InlineKeyboardButton(str(day), callback_data=f'day_{day}')
+            for day in range(1, num_days + 1)
+        ]
+        markup.add(*buttons)
+        markup.add(types.InlineKeyboardButton("🔙 Назад", callback_data="back_to_months"))
+        return markup
+
+    @bot.callback_query_handler(func=lambda call: call.data == "back_to_days")
+    def back_to_days(call):
+        bot.send_message(call.message.chat.id, "Выберите день:", reply_markup=get_day_menu())
+
+    def get_time_menu():
+        markup = types.InlineKeyboardMarkup()
+        times = ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00']
+        for t in times:
+            markup.add(types.InlineKeyboardButton(t, callback_data=f"time_{t}"))
+        markup.add(types.InlineKeyboardButton("🌙 На весь день", callback_data="time_allday"))
+        markup.add(types.InlineKeyboardButton("🕓 Ввести вручную", callback_data="time_custom"))
+        markup.add(types.InlineKeyboardButton("🔙 Назад", callback_data="back_to_days"))
+        return markup
+
+    @bot.callback_query_handler(func=lambda call: call.data == 'time_custom')
+    def handle_custom_time(call):
+        user_id = call.message.chat.id
+        user_event_data[user_id] = {}
+
+        user_event_data[user_id]['awaiting_time'] = True
+        bot.send_message(call.message.chat.id, "Пожалуйста, введите время в формате ЧЧ:ММ (например, 14:30).")
+        bot.register_next_step_handler(call.message, process_custom_time)
+
+    @bot.message_handler(
+        func=lambda message: message.text and user_event_data.get(message.chat.id, {}).get("awaiting_time"))
+    def process_custom_time(message):
+        user_id = message.chat.id
+        time_input = message.text.strip()
+
+        try:
+            # Пробуем преобразовать строку в время
+            datetime.datetime.strptime(time_input, "%H:%M")
+
+            # Сохраняем время и сбрасываем флаг
+            user_event_data[user_id]['time'] = time_input
+            user_event_data[user_id]['awaiting_time'] = False
+            user_event_data[user_id]['all_day'] = 0  # Если время указано вручную, не весь день
+
+            # Запрашиваем описание события
+            bot.send_message(message.chat.id,
+                             f"Вы установили время: {time_input}. Хотите, чтобы событие повторялось?",
+                             reply_markup=get_repeat_menu())
+        except ValueError:
+            bot.send_message(message.chat.id, "⛔ Неверный формат времени. Пожалуйста, введите в формате ЧЧ:ММ.")
+
+    def get_repeat_menu():
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        markup.add(
+            types.InlineKeyboardButton("🔁 Повторять ежедневно", callback_data="repeat_daily"),
+            types.InlineKeyboardButton("📅 Только один раз", callback_data="repeat_once"),
+        )
+        return markup
+
+    def handle_time_input(message):
+        user_time = message.text.strip()
+
+        # Проверка на правильность формата
+        if len(user_time) == 5 and user_time[2] == ":" and user_time[:2].isdigit() and user_time[3:].isdigit():
+            event_data['time'] = user_time
+            bot.send_message(message.chat.id, f"Вы выбрали время: {user_time}. Введите описание события.")
+            bot.register_next_step_handler(message, handle_event_description)
+        else:
+            bot.send_message(message.chat.id, "Неверный формат времени. Пожалуйста, введите снова в формате ЧЧ:ММ.")
+            bot.register_next_step_handler(message, handle_time_input)
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("delete_"))
+    def handle_delete_event(call):
+        id = int(call.data.split("_")[1])
+        try:
+            if db.delete_event(id):  # Пытаемся удалить событие
+                bot.answer_callback_query(call.id, text="Событие удалено ✅")
+                bot.send_message(call.message.chat.id, f"✅ Событие с ID {id} удалено.")
+            else:
+                bot.answer_callback_query(call.id, text="Событие не найдено ❌")
+        except Exception as e:
+            bot.send_message(call.message.chat.id, f"❗️ Ошибка при удалении: {e}")
+
+    @bot.message_handler(commands=['delete_event'])
+    def process_event_deletion(message):
+        events = db.get_all_events(user_id=message.from_user.id)
+        if not events:
+            bot.send_message(message.chat.id, "У вас нет сохранённых событий.")
+            return
+
+        for event in events:
+            id, year, month, day, time, event_description = event
+            text = f"📅 ID: {id} | {year}-{int(month):02d}-{int(day):02d} в {time}\n📝 {event_description}"
+            markup = types.InlineKeyboardMarkup()
+            markup.add(types.InlineKeyboardButton("❌ Удалить", callback_data=f"delete_{id}"))
+            bot.send_message(message.chat.id, text, reply_markup=markup)
+
+    @bot.message_handler(func=lambda message: message.text == "❌ Удалить событие")
+    def handle_delete_event_menu(message):
+        user_id = message.from_user.id
+        events = db.get_all_events(user_id=user_id)  # Получаем все события пользователя
+
+        if events:
+            for event in events:
+                id, year, month, day, time, event_description = event
+                event_text = f"📅 ID: {id} | {year}-{int(month):02d}-{int(day):02d} в {time} — {event_description}"
+
+                # Создаем кнопку для удаления
+                markup = types.InlineKeyboardMarkup()
+                delete_button = types.InlineKeyboardButton("❌ Удалить", callback_data=f"delete_{id}")
+                markup.add(delete_button)
+
+                # Отправляем сообщение с кнопкой удаления
+                bot.send_message(message.chat.id, event_text, reply_markup=markup)
+        else:
+            bot.send_message(message.chat.id, "У вас нет сохранённых событий.")

@@ -1,4 +1,4 @@
-from telebot import TeleBot, types
+from telebot import TeleBot
 from decorators import admin_only, log_command
 from database import Database
 
@@ -70,6 +70,9 @@ def setup_admin_commands(bot: TeleBot, db: Database):
             bot.register_next_step_handler(msg, process_user_id_step)
         except Exception as e:
             bot.reply_to(message, f"❌ Ошибка: {e}")
+
+    from telebot import types
+    from config import ADMIN_ID, MIUS_ID
 
     def get_wishlist_keyboard():
         markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
@@ -251,7 +254,6 @@ def setup_admin_commands(bot: TeleBot, db: Database):
             user_wish_selections.pop(message.chat.id, None)
 
         except Exception as e:
-            logging.error(f"Delete error: {e}")
             bot.send_message(
                 message.chat.id,
                 "❌ Ошибка при удалении. Пожалуйста, попробуйте снова.",
