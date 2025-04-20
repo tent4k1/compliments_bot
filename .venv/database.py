@@ -19,8 +19,8 @@ logging.basicConfig(
 logging.basicConfig(level=logging.DEBUG)
 
 # Включаем логирование для бота
-logger = logging.getLogger("telebot")
-logger.setLevel(logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
 
 class Database:
     _instance = None

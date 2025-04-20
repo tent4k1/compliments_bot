@@ -13,7 +13,16 @@ from config import WEATHER, DEFAULT_CITY
 from utils.scheduler import ComplimentScheduler
 
 db = Database()
-user_event_data = {}
+user_event_data = { }
+event_data_template = {
+    'year': 2025,
+    'month': None,
+    'day': None,
+    'time': None,
+    'event_description': None,
+    'all_day': 0,
+    'repeat': 0
+}
 event_data = {
     'year': 2025,
     'month': None,
@@ -336,7 +345,6 @@ def setup_user_commands(bot: TeleBot, scheduler):
         user_id = call.message.chat.id
         selected_year = int(call.data.split("_")[1])
 
-        # Убедитесь, что словарь для пользователя существует
         if user_id not in user_event_data:
             user_event_data[user_id] = {}
 
@@ -367,16 +375,24 @@ def setup_user_commands(bot: TeleBot, scheduler):
         user_id = call.message.chat.id
         selected = call.data.split('_')[1]
 
+        if user_id not in user_event_data:
+            user_event_data[user_id] = {}
+
         if selected == 'allday':
             user_event_data[user_id]['time'] = '08:00'
             user_event_data[user_id]['all_day'] = 1
+            bot.send_message(call.message.chat.id,
+                             "Вы выбрали: весь день. Хотите, чтобы событие повторялось?",
+                             reply_markup=get_repeat_menu())
+        elif selected == 'custom':
+            user_event_data[user_id]['awaiting_time'] = True
+            bot.send_message(call.message.chat.id, "Введите время в формате ЧЧ:ММ (например, 09:30):")
         else:
             user_event_data[user_id]['time'] = selected
             user_event_data[user_id]['all_day'] = 0
-
-        bot.send_message(call.message.chat.id,
-                         f"Вы выбрали время: {user_event_data[user_id]['time']}. Хотите, чтобы событие повторялось?",
-                         reply_markup=get_repeat_menu())
+            bot.send_message(call.message.chat.id,
+                             f"Вы выбрали время: {selected}. Хотите, чтобы событие повторялось?",
+                             reply_markup=get_repeat_menu())
 
     @bot.message_handler(func=lambda message: message.text == "📋 Мои события")
     def handle_view_events(message):
@@ -516,46 +532,61 @@ def setup_user_commands(bot: TeleBot, scheduler):
     def back_to_days(call):
         bot.send_message(call.message.chat.id, "Выберите день:", reply_markup=get_day_menu())
 
+    @bot.message_handler(
+        func=lambda message: message.text and user_event_data.get(message.chat.id, {}).get('awaiting_time'))
+    def process_custom_time(message):
+        user_id = message.chat.id
+        time_input = message.text.strip()
+
+        # Логируем каждый полученный запрос
+        logger.info(f"Обработчик времени сработал для пользователя {user_id}: {time_input}")
+
+        try:
+            # Проверяем правильность формата времени
+            datetime.strptime(time_input, "%H:%M")
+
+            # Если парсинг прошел успешно, сохраняем данные
+            user_event_data[user_id]['time'] = time_input
+            user_event_data[user_id]['awaiting_time'] = False
+
+            # Логируем успешное сохранение времени
+            logger.info(f"Время для пользователя {user_id} сохранено: {time_input}")
+            print(f"Время для пользователя {user_id} сохранено: {time_input}")
+
+            # Отправляем сообщение с меню повторяющихся событий
+            bot.send_message(message.chat.id,
+                             f"Вы установили время: {time_input}. Хотите, чтобы событие повторялось?",
+                             reply_markup=get_repeat_menu())  # Показываем меню повторяющихся событий
+
+        except ValueError:
+            # Если формат времени неправильный
+            logger.error(f"Ошибка при парсинге времени от пользователя {user_id}: {time_input}")
+            bot.send_message(message.chat.id, "⛔ Неверный формат времени. Пожалуйста, введите в формате ЧЧ:ММ.")
+
     def get_time_menu():
         markup = types.InlineKeyboardMarkup()
         times = ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00']
         for t in times:
             markup.add(types.InlineKeyboardButton(t, callback_data=f"time_{t}"))
-        markup.add(types.InlineKeyboardButton("🌙 На весь день", callback_data="time_allday"))
-        markup.add(types.InlineKeyboardButton("🕓 Ввести вручную", callback_data="time_custom"))
-        markup.add(types.InlineKeyboardButton("🔙 Назад", callback_data="back_to_days"))
+        markup.row(types.InlineKeyboardButton("🌙 На весь день", callback_data="time_allday"))
+        markup.row(types.InlineKeyboardButton("🕓 Ввести вручную", callback_data="time_custom"))
+        markup.row(types.InlineKeyboardButton("🔙 Назад", callback_data="back_to_days"))
         return markup
 
     @bot.callback_query_handler(func=lambda call: call.data == 'time_custom')
     def handle_custom_time(call):
         user_id = call.message.chat.id
-        user_event_data[user_id] = {}
+        print(f"Ждем ввода времени от пользователя {user_id}")
+
+        logger.info(f"Обработчик 'time_custom' активирован для пользователя {user_id}")
+
+        if user_id not in user_event_data:
+            print(f"Создаем новые данные для пользователя {user_id}")
+            user_event_data[user_id] = event_data_template.copy()
 
         user_event_data[user_id]['awaiting_time'] = True
-        bot.send_message(call.message.chat.id, "Пожалуйста, введите время в формате ЧЧ:ММ (например, 14:30).")
-        bot.register_next_step_handler(call.message, process_custom_time)
 
-    @bot.message_handler(
-        func=lambda message: message.text and user_event_data.get(message.chat.id, {}).get("awaiting_time"))
-    def process_custom_time(message):
-        user_id = message.chat.id
-        time_input = message.text.strip()
-
-        try:
-            # Пробуем преобразовать строку в время
-            datetime.datetime.strptime(time_input, "%H:%M")
-
-            # Сохраняем время и сбрасываем флаг
-            user_event_data[user_id]['time'] = time_input
-            user_event_data[user_id]['awaiting_time'] = False
-            user_event_data[user_id]['all_day'] = 0  # Если время указано вручную, не весь день
-
-            # Запрашиваем описание события
-            bot.send_message(message.chat.id,
-                             f"Вы установили время: {time_input}. Хотите, чтобы событие повторялось?",
-                             reply_markup=get_repeat_menu())
-        except ValueError:
-            bot.send_message(message.chat.id, "⛔ Неверный формат времени. Пожалуйста, введите в формате ЧЧ:ММ.")
+        bot.send_message(call.message.chat.id, "Введите время в формате ЧЧ:ММ (например, 14:30):")
 
     def get_repeat_menu():
         markup = types.InlineKeyboardMarkup(row_width=2)
