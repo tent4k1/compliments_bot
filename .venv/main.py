@@ -1,15 +1,15 @@
-from sched import scheduler
 import telebot
 import logging
-from threading import Thread
 import time
+
+from threading import Thread
+from sched import scheduler
 from config import TOKEN
 from database import Database
 from utils.scheduler import ComplimentScheduler
 from handlers.user_commands import setup_user_commands
 from handlers.admin_commands import setup_admin_commands
 
-# Настройка логирования
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -21,12 +21,10 @@ logging.basicConfig(
 
 logging.basicConfig(level=logging.DEBUG)
 
-# Включаем логирование для бота
 logger = logging.getLogger("telebot")
 logger.setLevel(logging.DEBUG)
 
-def run_health_check(scheduler):
-    """Фоновая проверка состояния бота"""
+def run_health_check(scheduler): # Фоновая проверка состояния бота
     while True:
         try:
             status = scheduler.check_working()
@@ -47,12 +45,10 @@ def load_events():
 
 def main():
     try:
-        # Инициализация бота
         bot = telebot.TeleBot(TOKEN)
         db = Database()
         scheduler = ComplimentScheduler(bot, db)
 
-        # Восстановление подписок и уведомление пользователей
         restored_users = 0
         for user_id in db.get_subscribed_users():
             try:
@@ -68,19 +64,15 @@ def main():
 
         logging.info(f"Restored {restored_users} subscriptions")
 
-        # Настройка обработчиков команд
-        setup_user_commands(bot, db)
+        setup_user_commands(bot)
         setup_admin_commands(bot, db)
 
-        # Запуск планировщика комплиментов
         scheduler.start()
 
-        # Запуск фоновой проверки здоровья
         health_thread = Thread(target=run_health_check, args=(scheduler,), daemon=True)
         health_thread.start()
 
-        # Команда для проверки статуса
-        @bot.message_handler(commands=['status'])
+        @bot.message_handler(commands=['status']) # Команда для проверки статуса
         def handle_status(message):
             status = scheduler.check_working()
             bot.reply_to(

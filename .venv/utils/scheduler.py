@@ -1,25 +1,26 @@
 import logging
 import requests
+
 from datetime import timedelta
-from pytz import timezone
 from datetime import datetime, time as dt_time
-from threading import Thread
-from typing import Dict, Optional, Tuple
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
+from pytz import timezone
+from threading import Thread
+from typing import Dict, Optional, Tuple
 from config import WEATHER, WEATHER, DEFAULT_CITY
 from database import Database
+from utils.weather_handlers import Weather_Handlers
 
 
 class ComplimentScheduler:
     def __init__(self, bot, db):
-        """
-        Инициализация планировщика комплиментов.
-        """
         self.bot = bot
         self.db = db
+        self.wh = Weather_Handlers()
         self.scheduler = BackgroundScheduler(timezone=timezone('Europe/Moscow'))
+        self._restore_event_reminders()
         self._running = False
         self.logger = logging.getLogger(__name__)
         self.logger.info("Initializing scheduler...")
@@ -27,8 +28,16 @@ class ComplimentScheduler:
 
         try:
             self._initialize_default_compliments()
+        except Exception as e:
+            self.logger.warning(f"Ошибка в инициализации стандартных комплиментов: {e}")
+        try:
             self.schedule_daily_jobs()
+        except Exception as e:
+            self.logger.error(f"Ошибка при настройке ежедневного планировщика: {e}")
+        try:
             self._schedule_weather()
+        except Exception as e:
+            self.logger.warning(f"Ошибка при настройке ежедневного планировщика погоды: {e}")
 
             if not self.scheduler.running:
                 self.scheduler.start()
@@ -42,8 +51,7 @@ class ComplimentScheduler:
             raise
 
     # ========== Compliments Methods ==========
-    def _initialize_default_compliments(self) -> None:
-        """Инициализация стандартных комплиментов при первом запуске"""
+    def _initialize_default_compliments(self) -> None: # Инициализация стандартных комплиментов при первом запуске
         try:
             if not self.db.get_compliments_count():
                 default_compliments = [
@@ -61,11 +69,7 @@ class ComplimentScheduler:
             self.logger.error(f"Failed to initialize default compliments: {e}")
             raise
 
-    def send_compliment_to_user(self, user_id: int) -> bool:
-        """
-        Отправка комплимента конкретному пользователю.
-            bool: Успешность отправки
-        """
+    def send_compliment_to_user(self, user_id: int) -> bool: # Отправка комплимента конкретному пользователю
         try:
             compliment = self.db.get_random_compliment()
             if not compliment:
@@ -85,13 +89,7 @@ class ComplimentScheduler:
                 self.logger.info(f"Unsubscribed blocked user {user_id}")
             return False
 
-    def send_compliments(self) -> Tuple[int, int]:
-        """
-        Отправка комплиментов всем подписанным пользователям.
-
-        Returns:
-            Tuple[int, int]: (количество успешных отправок, общее количество пользователей)
-        """
+    def send_compliments(self) -> Tuple[int, int]: # Отправка комплиментов всем подписанным пользователям
         try:
             users = self.db.get_subscribed_users()
             if not users:
@@ -120,8 +118,7 @@ class ComplimentScheduler:
             return (0, 0)
 
     # ========== Jobs Methods ==========
-    def schedule_daily_jobs(self) -> None:
-        """Настройка ежедневного расписания отправки"""
+    def schedule_daily_jobs(self) -> None: # Настройка ежедневного расписания отправки
         try:
             self.scheduler.remove_all_jobs()
 
@@ -151,8 +148,7 @@ class ComplimentScheduler:
             self.logger.error(f"Failed to schedule jobs: {e}")
             raise
 
-    def start(self) -> None:
-        """Запуск планировщика"""
+    def start(self) -> None: # Запуск планировщика
         if self._running:
             self.logger.warning("Scheduler already running")
             return
@@ -166,8 +162,7 @@ class ComplimentScheduler:
             self.logger.error(f"Failed to start scheduler: {e}")
             raise
 
-    def stop(self) -> None:
-        """Остановка планировщика"""
+    def stop(self) -> None: # Остановка планировщика
         if not self._running:
             self.logger.warning("Scheduler not running")
             return
@@ -180,11 +175,7 @@ class ComplimentScheduler:
             self.logger.error(f"Failed to stop scheduler: {e}")
             raise
 
-    def get_status(self) -> Dict:
-        """
-        Получение текущего статуса планировщика.
-            Dict: Статус и статистика
-        """
+    def get_status(self) -> Dict: # Получение текущего статуса планировщика
         return {
             'status': 'running' if self._running else 'stopped',
             'subscribed_users': self.db.get_subscribed_users_count(),
@@ -193,8 +184,7 @@ class ComplimentScheduler:
             'next_run': self._get_next_run_times()
         }
 
-    def _get_next_run_times(self) -> Optional[Dict]:
-        """Получение времени следующей отправки для каждого задания"""
+    def _get_next_run_times(self) -> Optional[Dict]: # Получение времени следующей отправки для каждого задания
         if not self._running:
             return None
 
@@ -205,14 +195,13 @@ class ComplimentScheduler:
             self.logger.error(f"Failed to get next run times: {e}")
             return None
 
-    def _get_daily_forecast(self, city_name: str) -> str:
-        """Получение форматированного прогноза"""
+    def _get_daily_forecast(self, city_name: str) -> str: # Получение форматированного прогноза
         base_url = "http://api.openweathermap.org/data/2.5/forecast"
         params = {
             'q': city_name,
             'appid': WEATHER,
             'units': 'metric',
-            'cnt': 8,  #8 периодов по 3 часа
+            'cnt': 12,  # 12 периодов по 2 часа
             'lang': 'ru'
         }
 
@@ -221,20 +210,34 @@ class ComplimentScheduler:
         data = response.json()
 
         forecast = []
+        daytime_temps = []
         for item in data['list']:
-            time = datetime.fromtimestamp(item['dt']).strftime('%H:%M')
+            time_obj = datetime.fromtimestamp(item['dt'])
+            time_str = time_obj.strftime('%H:%M')
+            hour = time_obj.hour
             temp = item['main']['temp']
-            desc = item['weather'][0]['description']
-            forecast.append(f"🕒 {time}: {temp}°C, {desc.capitalize()}")
+
+            weather_info = item['weather'][0] if item.get('weather') else {}
+            weather_id = weather_info.get('id', 800)
+            desc = weather_info.get('description')
+            forecast.append(f"{self.wh.get_weather_icon(weather_id)} {time_str}: {temp}°C, {desc.capitalize()}")
+
+            if 8 <= hour < 20:
+                daytime_temps.append(temp)
+
+        if daytime_temps:
+            avg_day_temp = sum(daytime_temps) / len(daytime_temps)
+            temp_info = f"\n\n<b>Средняя дневная температура (08:00-20:00):</b> {avg_day_temp:.1f}°C"
+        else:
+            temp_info = "\n\n<b>Дневные данные недоступны</b>"
 
         return (
                 f"<b>🌤️ Прогноз погоды в {data['city']['name']} на сегодня:</b>\n\n" +
                 "\n".join(forecast) +
-                f"\n\n<b>Средняя дневная температура:</b> {sum(item['main']['temp'] for item in data['list']) / 8:.1f}°C"
+                temp_info
         )
 
-    def check_working(self):
-        """Проверка состояния планировщика"""
+    def check_working(self): # Проверка состояния планировщика
         return {
             'status': 'running' if self._running else 'stopped',
             'users_count': self.db.get_subscribed_users_count(),
@@ -243,13 +246,12 @@ class ComplimentScheduler:
             'next_check': datetime.now().strftime('%H:%M:%S')
         }
 
-    # Обработчик погоды
-    def _schedule_weather(self):
-        """Настройка отправки в 8:00 утра"""
+    # ========== Weather's Jobs Methods ==========
+    def _schedule_weather(self): # Настройка отправки в определенное время
         try:
             self.scheduler.add_job(
                 self.send_daily_weather,
-                trigger=CronTrigger(hour=8, minute=0),
+                trigger=CronTrigger(hour=20, minute=22),
                 id='morning_weather'
             )
             self.logger.info("Weather forecast scheduled at 8:00 AM daily")
@@ -257,8 +259,7 @@ class ComplimentScheduler:
             self.logger.error(f"Failed to schedule weather: {e}")
             raise
 
-    def send_daily_weather(self):
-        """Отправка прогноза"""
+    def send_daily_weather(self): # Отправка прогноза
         try:
             forecast = self._get_daily_forecast(DEFAULT_CITY)
             users = self.db.get_subscribed_users()
@@ -270,22 +271,76 @@ class ComplimentScheduler:
         except Exception as e:
             self.logger.error(f"Weather job error: {e}")
 
-    def send_event_reminder(self, user_id, event_data):
+    # ========== Reminder's Jobs Methods ==========
+    def send_event_reminder(self, user_id, event_data): # Отправка напоминания
         self.bot.send_message(user_id, f"🔔 Напоминание о событии: {event_data['event_description']} в {event_data['time']}")
 
     def schedule_event_reminder(self, event_data, user_id):
-        event_time = datetime(year=event_data['year'], month=event_data['month'], day=event_data['day'],
-                              hour=int(event_data['time'].split(":")[0]), minute=int(event_data['time'].split(":")[1]))
+        event_time = datetime(
+            year=event_data['year'],
+            month=int(event_data['month']),
+            day=int(event_data['day']),
+            hour=int(event_data['time'].split(':')[0]),
+            minute=int(event_data['time'].split(':')[1])
+        )
 
-        if event_data.get('repeat', 0) == 1:
-            self.scheduler.add_job(self.send_event_reminder, 'interval', days=1, start_date=event_time,
-                              args=[user_id, event_data])
-        else:
-            self.scheduler.add_job(self.send_event_reminder, 'date', run_date=event_time,
-                              args=[user_id, event_data])
+        job_id = f"event_{event_data['id']}"
 
-    def stop(self):
-        """Остановка планировщика"""
+        try:
+            if event_data.get('repeat'):
+                self.scheduler.add_job(
+                    self.send_event_reminder,
+                    'interval',
+                    days=1,
+                    start_date=event_time,
+                    args=[user_id, event_data],
+                    id=job_id
+                )
+            else:
+                self.scheduler.add_job(
+                    self.send_event_reminder,
+                    'date',
+                    run_date=event_time,
+                    args=[user_id, event_data],
+                    id=job_id
+                )
+            return True
+        except Exception as e:
+            logger.error(f"Failed to schedule reminder: {e}")
+            return False
+
+    def _restore_event_reminders(self): # Восстановление напоминаний из БД при запуске
+        events = self.db.get_all_events(only_future=True)
+        for event in events:
+            event_time = datetime(
+                year=event['year'],
+                month=int(event['month']),
+                day=event['day'],
+                hour=int(event['time'].split(':')[0]),
+                minute=int(event['time'].split(':')[1])
+            )
+
+            job_id = f"event_{event['id']}"
+            if event['repeat']:
+                self.scheduler.add_job(
+                    self.send_event_reminder,
+                    'interval',
+                    days=1,
+                    start_date=event_time,
+                    args=[event['user_id'], event],
+                    id=job_id
+                )
+            else:
+                self.scheduler.add_job(
+                    self.send_event_reminder,
+                    'date',
+                    run_date=event_time,
+                    args=[event['user_id'], event],
+                    id=job_id
+                )
+
+
+    def stop(self): # Остановка планировщика
         if self._running:
             self.scheduler.shutdown()
             self._running = False

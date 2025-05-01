@@ -4,3 +4,7 @@ pytelegrambotapi==4.26.0
 pytest==8.3.5
 telebot==0.0.5
 datetime==5.5
+pytz==2025.2
+scheduler==0.8.8
+telebot==0.0.5
+requests==2.32.3
