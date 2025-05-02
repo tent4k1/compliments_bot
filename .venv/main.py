@@ -6,9 +6,12 @@ from threading import Thread
 from sched import scheduler
 from config import TOKEN
 from database import Database
+from utils.reminders_handlers import Reminders_Handlers
 from utils.scheduler import ComplimentScheduler
-from handlers.user_commands import setup_user_commands
+from utils.weather_handlers import Weather_Handlers
+from handlers.user_commands import UserCommands
 from handlers.admin_commands import setup_admin_commands
+from keyboards.main_menu import Buttons_menu
 
 logging.basicConfig(
     level=logging.INFO,
@@ -47,7 +50,12 @@ def main():
     try:
         bot = telebot.TeleBot(TOKEN)
         db = Database()
+        bm = Buttons_menu()
+        wh = Weather_Handlers()
         scheduler = ComplimentScheduler(bot, db)
+        uc = UserCommands(bot, db, bm, wh, None, scheduler)
+        rh = Reminders_Handlers(bot, db, bm, uc, scheduler)
+        uc.rh = rh
 
         restored_users = 0
         for user_id in db.get_subscribed_users():
@@ -64,7 +72,6 @@ def main():
 
         logging.info(f"Restored {restored_users} subscriptions")
 
-        setup_user_commands(bot)
         setup_admin_commands(bot, db)
 
         scheduler.start()
