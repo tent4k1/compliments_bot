@@ -126,3 +126,16 @@ class Buttons_menu:
         markup.add(btn_check, btn_subs, btn_unsubs, btn_back)
         return markup
 
+    @staticmethod
+    def get_reminder_offset_menu():
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        markup.add(
+            types.InlineKeyboardButton("За 15 минут", callback_data="reminder_15"),
+            types.InlineKeyboardButton("За 1 час", callback_data="reminder_60"),
+            types.InlineKeyboardButton("За 2 часа", callback_data="reminder_120"),
+            types.InlineKeyboardButton("За 3 часа", callback_data="reminder_180"),
+            types.InlineKeyboardButton("За 12 часов", callback_data="reminder_720"),
+            types.InlineKeyboardButton("За 1 день", callback_data="reminder_1440"),
+            types.InlineKeyboardButton("Не напоминать", callback_data="reminder_none")
+        )
+        return markup

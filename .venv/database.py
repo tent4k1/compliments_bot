@@ -24,7 +24,7 @@ logger = logging.getLogger()
 class Database:
     _instance = None
     _lock = threading.Lock()
-    DB_VERSION = 2  # Версия схемы базы данных
+    DB_VERSION = 3
 
     def __new__(cls): # Реализация Singleton для единственного подключения к БД
         if cls._instance is None:
@@ -38,7 +38,6 @@ class Database:
         self.db_path = Path('data') / 'bot_database.db'
         self._ensure_data_dir()
 
-        # Подключение с настройками для надежности
         self.conn = sqlite3.connect(
             str(self.db_path),
             timeout=20,
@@ -104,6 +103,7 @@ class Database:
             """,
             """
             CREATE TABLE IF NOT EXISTS db_meta (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 version INTEGER PRIMARY KEY
             )
             """,
@@ -123,7 +123,8 @@ class Database:
                 time TEXT,
                 event_description TEXT,
                 all_day INTEGER DEFAULT 0,
-                repeat INTEGER DEFAULT 0
+                repeat INTEGER DEFAULT 0,
+                reminder_offset INTEGER DEFAULT 0
             )
             """
         ]
@@ -132,29 +133,37 @@ class Database:
             with self.conn:
                 for table in tables:
                     self.conn.execute(table)
-                # Устанавливаем текущую версию БД
                 self.conn.execute("INSERT OR IGNORE INTO db_meta (version) VALUES (?)", (self.DB_VERSION,))
             logging.info("Database tables created/verified")
         except Exception as e:
             logging.error(f"Failed to create tables: {e}")
             raise
 
-    def _check_migrations(self): # Проверка и выполнение необходимых миграций
+    def _check_migrations(self):
         try:
-            # Получаем текущую версию БД
             cursor = self.conn.cursor()
-            cursor.execute("SELECT version FROM db_meta LIMIT 1")
-            result = cursor.fetchone()
-            current_version = result[0] if result else 0
 
-            # Выполняем миграции последовательно
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='db_meta'")
+            if not cursor.fetchone():
+                self.conn.execute("""
+                CREATE TABLE db_meta (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    version INTEGER UNIQUE
+                )
+                """)
+                current_version = 0
+            else:
+                cursor.execute("SELECT version FROM db_meta LIMIT 1")
+                result = cursor.fetchone()
+                current_version = result[0] if result else 0
+
             for version in range(current_version + 1, self.DB_VERSION + 1):
                 migration_method = getattr(self, f"_migrate_v{version}", None)
                 if migration_method:
                     migration_method()
-                    # Обновляем версию в БД
                     with self.conn:
-                        self.conn.execute("UPDATE db_meta SET version = ?", (version,))
+                        cursor.execute("DELETE FROM db_meta")
+                        cursor.execute("INSERT INTO db_meta (version) VALUES (?)", (version,))
                     logging.info(f"Database migrated to version {version}")
 
         except Exception as e:
@@ -163,10 +172,8 @@ class Database:
 
     def _migrate_v1(self): # Миграция на версию 1: добавление language_code и last_active
         with self.conn:
-            # Проверяем существование колонок перед добавлением
             cursor = self.conn.cursor()
 
-            # Для language_code
             cursor.execute("PRAGMA table_info(users)")
             columns = [col[1] for col in cursor.fetchall()]
 
@@ -180,7 +187,6 @@ class Database:
 
     def _migrate_v2(self): # Миграция на версию 2: добавление таблицы db_meta
         with self.conn:
-            # Проверяем существование таблицы db_meta
             cursor = self.conn.cursor()
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='db_meta'")
             if not cursor.fetchone():
@@ -191,6 +197,16 @@ class Database:
                 """)
                 self.conn.execute("INSERT INTO db_meta (version) VALUES (2)")
                 logging.info("Added db_meta table")
+
+    def _migrate_v3(self):
+        with self.conn:
+            cursor = self.conn.cursor()
+            cursor.execute("PRAGMA table_info(events)")
+            columns = [col[1] for col in cursor.fetchall()]
+
+            if 'reminder_offset' not in columns:
+                self.conn.execute("ALTER TABLE events ADD COLUMN reminder_offset INTEGER DEFAULT 0")
+                logging.info("Добавлен столбец reminder_offset в таблицу events ")
 
     # ========== User Methods ==========
     def user_exists(self, user_id: int) -> bool: # Проверка существования пользователя
@@ -203,8 +219,7 @@ class Database:
             logging.error(f"Failed to check user existence {user_id}: {e}")
             return False
 
-    def add_user(self, user_id: int, username: str = None,
-                 first_name: str = None, last_name: str = None,
+    def add_user(self, user_id: int, username: str = None, first_name: str = None, last_name: str = None,
                  language_code: str = None) -> bool: # Добавление/обновление пользователя
         query = """
         INSERT OR REPLACE INTO users 
@@ -608,16 +623,16 @@ class Database:
     # ========== Reminders Methods ==========
     def save_event(self, user_id: int, year: int, month: int, day: int,
                    time: str, event_description: str, all_day: int = 0,
-                   repeat: int = 0) -> Optional[int]:
+                   repeat: int = 0, reminder_offset: int = 0) -> Optional[int]:
         if self.conn is None:
             self.conn()
         try:
             cursor = self.conn.cursor()
             cursor.execute('''
                 INSERT INTO events 
-                (user_id, year, month, day, time, event_description, all_day, repeat)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (user_id, year, month, day, time, event_description, all_day, repeat))
+                (user_id, year, month, day, time, event_description, all_day, repeat, reminder_offset)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (user_id, year, month, day, time, event_description, all_day, repeat, reminder_offset))
             self.conn.commit()
             return cursor.lastrowid
         except Exception as e:
@@ -628,7 +643,7 @@ class Database:
                        only_future: bool = False) -> List[Dict]:
         query = """
             SELECT id, user_id, year, month, day, time, 
-                   event_description, all_day, repeat
+                   event_description, all_day, repeat, reminder_offset
             FROM events
             """
         params = []
@@ -659,7 +674,8 @@ class Database:
                 'time': row[5],
                 'event_description': row[6],
                 'all_day': bool(row[7]),
-                'repeat': bool(row[8])
+                'repeat': bool(row[8]),
+                'reminder_offset': row[9]
             } for row in cursor.fetchall()]
         except Exception as e:
             logger.error(f"Failed to get events: {e}")
@@ -727,12 +743,3 @@ class Database:
             logging.error(f"Failed to cleanup old events: {e}")
             return 0
 
-    def cancel_event_reminder(self, event_id: int) -> bool: # Отмена напоминания
-        try:
-            # Удаляем из планировщика
-            self.scheduler.remove_job(f"event_{event_id}")
-            # Удаляем из БД
-            return self.db.delete_event(event_id)
-        except Exception as e:
-            logging.error(f"Failed to cancel event {event_id}: {e}")
-            return False

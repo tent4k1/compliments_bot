@@ -20,35 +20,26 @@ class ComplimentScheduler:
         self.db = db
         self.wh = Weather_Handlers()
         self.scheduler = BackgroundScheduler(timezone=timezone('Europe/Moscow'))
-        self._restore_event_reminders()
         self._running = False
         self.logger = logging.getLogger(__name__)
         self.logger.info("Initializing scheduler...")
-        self.logger.info("Scheduler started successfully")
 
         try:
-            self._initialize_default_compliments()
-        except Exception as e:
-            self.logger.warning(f"Ошибка в инициализации стандартных комплиментов: {e}")
-        try:
-            self.schedule_daily_jobs()
-        except Exception as e:
-            self.logger.error(f"Ошибка при настройке ежедневного планировщика: {e}")
-        try:
-            self._schedule_weather()
-        except Exception as e:
-            self.logger.warning(f"Ошибка при настройке ежедневного планировщика погоды: {e}")
-
             if not self.scheduler.running:
                 self.scheduler.start()
                 self._running = True
                 self.logger.info("Scheduler started successfully")
-            else:
-                self.logger.warning("Scheduler was already running")
-
         except Exception as e:
-            self.logger.critical(f"Failed to initialize scheduler: {e}")
+            self.logger.critical(f"Failed to start scheduler: {e}")
             raise
+
+        try:
+            self._initialize_default_compliments()
+            self._restore_event_reminders()
+            self.schedule_daily_jobs()
+            self._schedule_weather()
+        except Exception as e:
+            self.logger.error(f"Error during scheduler initialization: {e}")
 
     # ========== Compliments Methods ==========
     def _initialize_default_compliments(self) -> None: # Инициализация стандартных комплиментов при первом запуске
@@ -272,8 +263,25 @@ class ComplimentScheduler:
             self.logger.error(f"Weather job error: {e}")
 
     # ========== Reminder's Jobs Methods ==========
-    def send_event_reminder(self, user_id, event_data): # Отправка напоминания
-        self.bot.send_message(user_id, f"🔔 Напоминание о событии: {event_data['event_description']} в {event_data['time']}")
+    def send_event_reminder(self, user_id, event_data): # Отправка напоминания о событии
+        event_time = datetime(
+            year=event_data['year'],
+            month=int(event_data['month']),
+            day=int(event_data['day']),
+            hour=int(event_data['time'].split(':')[0]),
+            minute=int(event_data['time'].split(':')[1])
+        )
+        reminder_time = event_time - timedelta(minutes=event_data.get('reminder_offset', 0))
+
+        time_left = event_data.get('reminder_offset', 0)
+        time_str = "сейчас" if time_left == 0 else f"{time_left} мин."
+
+        self.bot.send_message(
+            user_id,
+            f"🔔 Напоминание: {event_data['event_description']}\n"
+            f"⏰ Время события: {event_data['time']}\n"
+            f"⏳ До события осталось: {time_str}."
+        )
 
     def schedule_event_reminder(self, event_data, user_id):
         event_time = datetime(
@@ -284,6 +292,7 @@ class ComplimentScheduler:
             minute=int(event_data['time'].split(':')[1])
         )
 
+        reminder_time = event_time - timedelta(minutes=event_data.get('reminder_offset', 0))
         job_id = f"event_{event_data['id']}"
 
         try:
@@ -292,7 +301,7 @@ class ComplimentScheduler:
                     self.send_event_reminder,
                     'interval',
                     days=1,
-                    start_date=event_time,
+                    start_date=reminder_time,
                     args=[user_id, event_data],
                     id=job_id
                 )
@@ -300,7 +309,7 @@ class ComplimentScheduler:
                 self.scheduler.add_job(
                     self.send_event_reminder,
                     'date',
-                    run_date=event_time,
+                    run_date=reminder_time,
                     args=[user_id, event_data],
                     id=job_id
                 )
@@ -338,6 +347,14 @@ class ComplimentScheduler:
                     args=[event['user_id'], event],
                     id=job_id
                 )
+
+    def cancel_event_reminder(self, event_id: int) -> bool:  # Отмена напоминания
+        try:
+            self.scheduler.remove_job(f"event_{event_id}")
+            return self.db.delete_event(event_id)
+        except Exception as e:
+            logging.error(f"Failed to cancel event {event_id}: {e}")
+            return False
 
 
     def stop(self): # Остановка планировщика

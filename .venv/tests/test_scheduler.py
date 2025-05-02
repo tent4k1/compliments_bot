@@ -120,22 +120,20 @@ def test_get_status(scheduler, mock_db): # Проверяем получение
 
 @patch('utils.scheduler.requests.get')
 def test_get_daily_forecast(mock_get, scheduler): # Создаем реалистичные тестовые данные с разным временем
-    base_time = datetime(2023, 1, 1, 3, 0)  # Начальное время - 03:00
+    base_time = datetime(2023, 1, 1, 3, 0)
     test_data = {
         'city': {'name': 'moscow'},
         'list': []
     }
 
-    # Добавляем 12 записей с интервалом 2 часа (3 ночных и 9 дневных)
     for i in range(12):
         record_time = base_time + timedelta(hours=2 * i)
         test_data['list'].append({
             'dt': int(record_time.timestamp()),
-            'main': {'temp': 20.5 + i},  # Разная температура для наглядности
+            'main': {'temp': 20.5 + i},
             'weather': [{'id': 800 + i, 'description': 'clear sky'}]
         })
 
-    # Настраиваем mock
     mock_response = MagicMock()
     mock_response.json.return_value = test_data
     mock_response.raise_for_status.return_value = None
@@ -143,12 +141,10 @@ def test_get_daily_forecast(mock_get, scheduler): # Создаем реалис�
 
     forecast = scheduler._get_daily_forecast("moscow")
 
-    # Проверяем ключевые элементы
     assert "<b>🌤️ Прогноз погоды в moscow на сегодня:</b>" in forecast
     assert "03:00: 20.5°C, Clear sky" in forecast
-    assert "09:00: 23.5°C, Clear sky" in forecast  # Пример дневной записи
+    assert "09:00: 23.5°C, Clear sky" in forecast
     assert "<b>Средняя дневная температура (08:00-20:00):</b>" in forecast
-    # Проверяем, что средняя температура выводится корректно
     assert "°C" in forecast.split("Средняя дневная температура")[-1]
 
 def test_check_working(scheduler, mock_db): # Проверяем метод проверки состояния

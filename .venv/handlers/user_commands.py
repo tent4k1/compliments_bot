@@ -287,7 +287,7 @@ def setup_user_commands(bot: TeleBot):
                     "Вы выбрали: весь день. Хотите, чтобы событие повторялось?",
                     call.message.chat.id,
                     call.message.message_id,
-                    reply_markup=bm.get_repeat_menu()
+                    reply_markup=bm.get_reminder_offset_menu()
                 )
             elif selected == 'custom':
                 user_event_data[user_id]['awaiting_time'] = True
@@ -296,14 +296,34 @@ def setup_user_commands(bot: TeleBot):
                 user_event_data[user_id]['time'] = selected
                 user_event_data[user_id]['all_day'] = 0
                 bot.edit_message_text(
-                    f"Вы выбрали время: {selected}. Хотите, чтобы событие повторялось?",
+                    f"Вы выбрали время: {selected}. Теперь выберите, за сколько времени напомнить:",
                     call.message.chat.id,
                     call.message.message_id,
-                    reply_markup=bm.get_repeat_menu()
+                    reply_markup=bm.get_reminder_offset_menu()
                 )
         except Exception as e:
             logging.error(f"Error in time selection: {e}")
             bot.answer_callback_query(call.id, "Ошибка выбора времени")
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('reminder_'))
+    def handle_reminder_offset_selection(call):
+        user_id = call.message.chat.id
+        try:
+            offset = call.data.split('_')[1]
+            if offset == 'none':
+                user_event_data[user_id]['reminder_offset'] = 0
+            else:
+                user_event_data[user_id]['reminder_offset'] = int(offset)
+
+            bot.edit_message_text(
+                "Хотите, чтобы событие повторялось ежедневно или было одноразовым?",
+                call.message.chat.id,
+                call.message.message_id,
+                reply_markup=bm.get_repeat_menu()
+            )
+        except Exception as e:
+            logging.error(f"Error in reminder offset selection: {e}")
+            bot.answer_callback_query(call.id, "Ошибка выбора напоминания")
 
     @bot.message_handler(func=lambda message: message.text == "📋 Мои события")
     def handle_view_events(message):
@@ -324,6 +344,7 @@ def setup_user_commands(bot: TeleBot):
                     time = event['time'] if event['time'] else "00:00"
                     description = event['event_description'] if event['event_description'] else "Без описания"
                     repeat = event['repeat']
+                    reminder_offset = event.get('reminder_offset', 0)
 
                     date_parts = []
                     if year and str(year).isdigit():
@@ -385,7 +406,8 @@ def setup_user_commands(bot: TeleBot):
                 time=event_data['time'],
                 event_description=event_description,
                 all_day=event_data.get('all_day', 0),
-                repeat=event_data.get('repeat', 0)
+                repeat=event_data.get('repeat', 0),
+                reminder_offset=event_data.get('reminder_offset', 0)
             )
 
             if not event_id:
@@ -399,7 +421,8 @@ def setup_user_commands(bot: TeleBot):
                 'day': event_data['day'],
                 'time': event_data['time'],
                 'event_description': event_description,
-                'repeat': event_data.get('repeat', 0)
+                'repeat': event_data.get('repeat', 0),
+                'reminder_offset': event_data.get('reminder_offset', 0)
             }
 
             if scheduler.schedule_event_reminder(event_data_for_scheduler, user_id):
@@ -418,8 +441,7 @@ def setup_user_commands(bot: TeleBot):
         try:
             event_id = int(call.data.split("_")[1])
             if db.delete_event(event_id):
-                # Используем глобальный scheduler
-                db.cancel_event_reminder(event_id)
+                scheduler.cancel_event_reminder(event_id)
                 bot.answer_callback_query(call.id, "Событие удалено ✅")
                 bot.edit_message_text(
                     f"✅ Событие с ID {event_id} удалено.",
@@ -438,15 +460,14 @@ def setup_user_commands(bot: TeleBot):
         time_input = message.text.strip()
 
         try:
-            # Validate time format
             datetime.strptime(time_input, "%H:%M")
             user_event_data[user_id]['time'] = time_input
             user_event_data[user_id]['awaiting_time'] = False
 
             bot.send_message(
                 user_id,
-                f"Вы установили время: {time_input}. Хотите, чтобы событие повторялось?",
-                reply_markup=bm.get_repeat_menu()
+                f"Вы установили время: {time_input}. Теперь выберите, за сколько времени напомнить:",
+                reply_markup=bm.get_reminder_offset_menu()
             )
         except ValueError:
             bot.send_message(user_id, "⛔ Неверный формат времени. Пожалуйста, введите в формате ЧЧ:ММ.")
