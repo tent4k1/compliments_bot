@@ -678,17 +678,26 @@ class Database:
                 'reminder_offset': row[9]
             } for row in cursor.fetchall()]
         except Exception as e:
-            logger.error(f"Failed to get events: {e}")
+            logger.error(f"Failed to get events: {e}") or []
             return []
 
-    def delete_event(self, event_id: int) -> bool:
+    def delete_event(self, event_id, user_id=None):
         try:
             with self.conn:
                 cursor = self.conn.cursor()
-                cursor.execute("DELETE FROM events WHERE id = ?", (event_id,))
+
+                query = "DELETE FROM events WHERE id = ?"
+                params = [event_id]
+
+                if user_id:
+                    query += " AND user_id = ?"
+                    params.append(user_id)
+
+                cursor.execute(query, params)
                 return cursor.rowcount > 0
+
         except Exception as e:
-            logger.error(f"Failed to delete event {event_id}: {e}")
+            logger.error(f"Database error deleting event: {e}")
             return False
 
     def update_event(self, event_id: int, year: int, month: int, day: int,
@@ -743,3 +752,19 @@ class Database:
             logging.error(f"Failed to cleanup old events: {e}")
             return 0
 
+    def update_event_description(self, event_id, new_text, user_id=None):
+        try:
+            query = "UPDATE events SET event_description = ? WHERE id = ?"
+            params = [new_text, event_id]
+
+            if user_id:
+                query += " AND user_id = ?"
+                params.append(user_id)
+
+            with self.conn:
+                cursor = self.conn.cursor()
+                cursor.execute(query, params)
+                return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"Error updating event description: {e}")
+            return False

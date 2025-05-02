@@ -12,10 +12,12 @@ from database import Database
 from config import WEATHER, DEFAULT_CITY, TOKEN
 from utils.weather_handlers import Weather_Handlers
 from utils.scheduler import ComplimentScheduler
+from utils.reminders_handlers import Reminders_Handlers
 
 db = Database()
 wh = Weather_Handlers()
 bm = Buttons_menu()
+rh = Reminders_Handlers()
 bot = TeleBot(TOKEN)
 scheduler = ComplimentScheduler(bot, db)
 
@@ -38,11 +40,19 @@ event_data = {
     'all_day': 0,
     'repeat': 0
 }
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
-# Включаем логирование для бота
 logger = logging.getLogger("telebot")
 logger.setLevel(logging.DEBUG)
+
+class DeleteState:
+    def __init__(self):
+        self.selected_events = {}
+
+delete_state = DeleteState()
 
 def setup_user_commands(bot: TeleBot):
     @bot.message_handler(commands=['start'])
@@ -327,49 +337,53 @@ def setup_user_commands(bot: TeleBot):
 
     @bot.message_handler(func=lambda message: message.text == "📋 Мои события")
     def handle_view_events(message):
-        user_id = message.from_user.id
         try:
+            user_id = message.from_user.id
             events = db.get_all_events(user_id=user_id)
+            logger.debug(f"Events for user {user_id}: {events}")
+
+            if isinstance(events, int):
+                raise ValueError(f"Database returned integer: {events}")
 
             if not events:
                 bot.send_message(message.chat.id, "У вас нет сохранённых событий.")
                 return
 
-            for event in events:
-                try:
-                    event_id = event['id']
-                    year = event['year']
-                    month = event['month']
-                    day = event['day']
-                    time = event['time'] if event['time'] else "00:00"
-                    description = event['event_description'] if event['event_description'] else "Без описания"
-                    repeat = event['repeat']
-                    reminder_offset = event.get('reminder_offset', 0)
-
-                    date_parts = []
-                    if year and str(year).isdigit():
-                        date_parts.append(str(int(year)))
-                    if month and str(month).isdigit():
-                        date_parts.append(f"{int(month):02d}")
-                    if day and str(day).isdigit():
-                        date_parts.append(f"{int(day):02d}")
-
-                    date_str = "-".join(date_parts) if date_parts else "❓ Дата не указана"
-                    if repeat:
-                        date_str = "⏰ Повторяется ежедневно"
-
-                    text = f"📅 ID: {event_id} | {date_str} в {time}\n📝 {description}"
-                    markup = types.InlineKeyboardMarkup()
-                    markup.add(types.InlineKeyboardButton("❌ Удалить", callback_data=f"delete_{event_id}"))
-
-                    bot.send_message(message.chat.id, text, reply_markup=markup)
-                except Exception as e:
-                    logger.error(f"Error formatting event {event}: {e}")
-                    continue
+            rh.send_grouped_events(chat_id=message.chat.id, events=events)
 
         except Exception as e:
-            logger.error(f"Error getting events for user {user_id}: {e}")
-            bot.send_message(message.chat.id, "❌ Произошла ошибка при загрузке событий")
+            logger.error(f"Error in handle_view_events: {e}")
+            if "chat not found" not in str(e):
+                bot.send_message(message.chat.id, "❌ Ошибка при загрузке событий")
+
+    def send_event_page(chat_id, pages, page_num):
+        markup = types.InlineKeyboardMarkup()
+        current_page = pages[page_num]
+
+        text = f"📅 Ваши события ({page_num * len(current_page) + 1}-{(page_num + 1) * len(current_page)} из {sum(len(p) for p in pages)})\n"
+        text += "──────────────────\n"
+
+        for event in current_page:
+            status = "🟢" if datetime.now() < event['datetime'] else "🔴"
+            text += f"{status} {event['day']}.{event['month']} {event['time']} - {event['description']}\n"
+
+        buttons = []
+        if page_num > 0:
+            buttons.append(types.InlineKeyboardButton("◀️", callback_data=f"events_prev_{page_num}"))
+
+        buttons.append(types.InlineKeyboardButton(f"{page_num + 1}/{len(pages)}", callback_data="events_page"))
+
+        if page_num < len(pages) - 1:
+            buttons.append(types.InlineKeyboardButton("▶️", callback_data=f"events_next_{page_num}"))
+
+        markup.row(*buttons)
+
+        markup.row(
+            types.InlineKeyboardButton("🗑 Удалить", callback_data="delete_mode"),
+            types.InlineKeyboardButton("✏️ Редактировать", callback_data="events_edit")
+        )
+
+        bot.send_message(chat_id, text, reply_markup=markup)
 
     @bot.callback_query_handler(func=lambda call: call.data in ["repeat_daily", "repeat_once"])
     def handle_repeat_selection(call):
@@ -436,23 +450,152 @@ def setup_user_commands(bot: TeleBot):
             logger.error(f"System error in handle_event_description: {e}")
             bot.send_message(user_id, "❌ Произошла системная ошибка при обработке события")
 
-    @bot.callback_query_handler(func=lambda call: call.data.startswith("delete_"))
-    def handle_delete_event(call):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("del_confirm"))
+    def confirm_deletion(call):
         try:
-            event_id = int(call.data.split("_")[1])
-            if db.delete_event(event_id):
-                scheduler.cancel_event_reminder(event_id)
-                bot.answer_callback_query(call.id, "Событие удалено ✅")
-                bot.edit_message_text(
-                    f"✅ Событие с ID {event_id} удалено.",
-                    call.message.chat.id,
-                    call.message.message_id
-                )
-            else:
-                bot.answer_callback_query(call.id, "Событие не найдено ❌")
+            user_id = call.from_user.id
+
+            if user_id not in delete_state.selected_events or not delete_state.selected_events[user_id]:
+                bot.answer_callback_query(call.id, "Не выбрано ни одного события", show_alert=True)
+                return
+
+            deleted_count = 0
+            for event_id in list(delete_state.selected_events[user_id]):
+                if db.delete_event(event_id, user_id=user_id):
+                    deleted_count += 1
+
+            del delete_state.selected_events[user_id]
+
+            events = db.get_all_events(user_id)
+            rh.send_grouped_events(
+                chat_id=call.message.chat.id,
+                events=events,
+                message_id=call.message.message_id
+            )
+
+            bot.answer_callback_query(call.id, f"Удалено событий: {deleted_count}", show_alert=True)
+
         except Exception as e:
-            logging.error(f"Error deleting event: {e}")
-            bot.answer_callback_query(call.id, "Ошибка удаления ❌")
+            logger.error(f"Error in confirm_deletion: {e}")
+            bot.answer_callback_query(call.id, "Ошибка при удалении")
+
+    @bot.callback_query_handler(func=lambda call: call.data == "del_cancel")
+    def cancel_deletion(call):
+        try:
+            user_id = call.from_user.id
+
+            if user_id in delete_state.selected_events:
+                del delete_state.selected_events[user_id]
+
+            events = db.get_all_events(user_id)
+            rh.send_grouped_events(
+                chat_id=call.message.chat.id,
+                events=events,
+                message_id=call.message.message_id
+            )
+
+            bot.answer_callback_query(call.id, "Удаление отменено")
+
+        except Exception as e:
+            logger.error(f"Error in cancel_deletion: {e}")
+            bot.answer_callback_query(call.id, "Ошибка при отмене")
+
+    @bot.callback_query_handler(func=lambda call: call.data == "delete_mode")
+    def handle_delete_mode(call):
+        try:
+            user_id = call.from_user.id
+            events = db.get_all_events(user_id=user_id)
+
+            if not events:
+                bot.answer_callback_query(call.id, "Нет событий для удаления", show_alert=True)
+                return
+
+            delete_state.selected_events[user_id] = set()
+
+            markup = types.InlineKeyboardMarkup(row_width=1)
+
+            for event in events:
+                event_text = f"{event['day']}.{event['month']} {event.get('time', '')} - {event['event_description'][:20]}..."
+                markup.add(
+                    types.InlineKeyboardButton(
+                        text=f"🔘 {event_text}",
+                        callback_data=f"del_toggle_{event['id']}"
+                    )
+                )
+
+            markup.row(
+                types.InlineKeyboardButton("✅ Подтвердить удаление", callback_data="del_confirm"),
+                types.InlineKeyboardButton("❌ Отменить", callback_data="del_cancel")
+            )
+
+            bot.edit_message_text(
+                "🗑 Выберите события для удаления:",
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                reply_markup=markup
+            )
+
+        except Exception as e:
+            logger.error(f"Error in enter_delete_mode: {e}")
+            bot.answer_callback_query(call.id, "Ошибка при входе в режим удаления")
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("del_toggle_"))
+    def toggle_event_selection(call):
+        try:
+            user_id = call.from_user.id
+            event_id = int(call.data.split("_")[2])
+
+            if user_id not in delete_state.selected_events:
+                delete_state.selected_events[user_id] = set()
+
+            if event_id in delete_state.selected_events[user_id]:
+                delete_state.selected_events[user_id].remove(event_id)
+                new_prefix = "🔘"
+            else:
+                delete_state.selected_events[user_id].add(event_id)
+                new_prefix = "✅"
+
+            markup = types.InlineKeyboardMarkup(row_width=1)
+
+            lines = call.message.text.split('\n')
+            new_text = lines[0]
+
+            for row in call.message.reply_markup.keyboard:
+                for button in row:
+                    if button.callback_data.startswith("del_toggle_"):
+                        btn_event_id = int(button.callback_data.split("_")[2])
+                        btn_text = button.text
+
+                        if btn_event_id == event_id:
+                            btn_text = f"{new_prefix}{btn_text[1:]}"
+                        elif btn_event_id in delete_state.selected_events[user_id]:
+                            btn_text = f"✅{btn_text[1:]}"
+                        else:
+                            btn_text = f"🔘{btn_text[1:]}"
+
+                        markup.add(types.InlineKeyboardButton(
+                            text=btn_text,
+                            callback_data=button.callback_data
+                        ))
+
+            markup.row(
+                types.InlineKeyboardButton("✅ Подтвердить удаление", callback_data="del_confirm"),
+                types.InlineKeyboardButton("❌ Отменить", callback_data="del_cancel")
+            )
+
+            if call.message.text != new_text or str(call.message.reply_markup) != str(markup):
+                bot.edit_message_text(
+                    chat_id=call.message.chat.id,
+                    message_id=call.message.message_id,
+                    text=new_text,
+                    reply_markup=markup
+                )
+
+            bot.answer_callback_query(call.id)
+
+        except Exception as e:
+            logger.error(f"Error in toggle_event_selection: {e}")
+            bot.answer_callback_query(call.id, "Ошибка выбора события")
 
     @bot.message_handler(func=lambda message: user_event_data.get(message.chat.id, {}).get('awaiting_time'))
     def process_custom_time(message):
@@ -471,3 +614,109 @@ def setup_user_commands(bot: TeleBot):
             )
         except ValueError:
             bot.send_message(user_id, "⛔ Неверный формат времени. Пожалуйста, введите в формате ЧЧ:ММ.")
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith(("events_prev_", "events_next_")))
+    def handle_events_pagination(call):
+        try:
+            _, direction, page = call.data.split('_')
+            page = int(page)
+            new_page = page - 1 if direction == "prev" else page + 1
+
+            events = db.get_all_events(call.from_user.id)
+
+            send_grouped_events(
+                chat_id=call.message.chat.id,
+                events=events,
+                page=new_page,
+                message_id=call.message.message_id
+            )
+
+        except Exception as e:
+            logger.error(f"Error in handle_events_pagination: {e}")
+            bot.answer_callback_query(call.id, "Ошибка при переключении страницы")
+
+    @bot.callback_query_handler(func=lambda call: call.data == "edit_mode")
+    def enter_edit_mode(call):
+        events = db.get_all_events(call.from_user.id)
+        markup = types.InlineKeyboardMarkup()
+
+        for event in events:
+            btn_text = f"{event['day']}.{event['month']} {event.get('time', '')} - {event['event_description'][:15]}..."
+            markup.add(types.InlineKeyboardButton(btn_text, callback_data=f"edit_{event['id']}"))
+
+        markup.row(
+            types.InlineKeyboardButton("◀️ Назад", callback_data="cancel_edit")
+        )
+
+        bot.edit_message_text(
+            "Выберите событие для редактирования:",
+            call.message.chat.id,
+            call.message.message_id,
+            reply_markup=markup
+        )
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("edit_"))
+    def select_edit_field(call):
+        event_id = call.data.split("_")[1]
+        markup = types.InlineKeyboardMarkup()
+
+        markup.row(
+            types.InlineKeyboardButton("📅 Дата", callback_data=f"editdate_{event_id}"),
+            types.InlineKeyboardButton("⏰ Время", callback_data=f"edittime_{event_id}")
+        )
+        markup.row(
+            types.InlineKeyboardButton("📝 Текст", callback_data=f"edittext_{event_id}"),
+            types.InlineKeyboardButton("🔄 Повтор", callback_data=f"editrepeat_{event_id}")
+        )
+        markup.row(
+            types.InlineKeyboardButton("◀️ Назад", callback_data="edit_mode")
+        )
+
+        bot.edit_message_text(
+            "Что хотите изменить?",
+            call.message.chat.id,
+            call.message.message_id,
+            reply_markup=markup
+        )
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("edittext_"))
+    def edit_event_text(call):
+        try:
+            event_id = call.data.split("_")[1]
+            msg = bot.send_message(call.message.chat.id, "Введите новое описание события:")
+
+            bot.register_next_step_handler(msg, rh.process_new_text, event_id=event_id, original_call=call)
+
+        except Exception as e:
+            logger.error(f"Error in edit_event_text: {e}")
+            bot.answer_callback_query(call.id, "Ошибка при редактировании")
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("page_"))
+    def handle_pagination(call):
+        page = int(call.data.split("_")[1])
+        events = db.get_all_events(call.from_user.id)
+        send_grouped_events(
+            call.message.chat.id,
+            events,
+            page=page,
+            message_id=call.message.message_id
+        )
+
+    @bot.callback_query_handler(func=lambda call: call.data == "cancel_edit")
+    def handle_cancel_edit(call):
+        try:
+            user_id = call.from_user.id
+            events = db.get_all_events(user_id=user_id)
+
+            # Возвращаемся к основному списку событий
+            rh.send_grouped_events(
+                chat_id=call.message.chat.id,
+                events=events,
+                message_id=call.message.message_id  # Редактируем текущее сообщение
+            )
+
+            bot.answer_callback_query(call.id, "Редактирование отменено")
+
+        except Exception as e:
+            logger.error(f"Error in handle_cancel_edit: {e}")
+            bot.answer_callback_query(call.id, "❌ Ошибка при отмене")

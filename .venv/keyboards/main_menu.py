@@ -70,10 +70,9 @@ class Buttons_menu:
         markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
         btn_add_rem = types.KeyboardButton('📆 Добавить событие')
         btn_my_rem = types.KeyboardButton('📋 Мои события')
-        btn_del_rem = types.KeyboardButton('❌ Удалить событие')
         btn_back = types.KeyboardButton('🔙 Назад')
 
-        markup.add(btn_my_rem, btn_add_rem, btn_back, btn_del_rem)
+        markup.add(btn_my_rem, btn_add_rem, btn_back)
         return markup
 
     @staticmethod
@@ -139,3 +138,5 @@ class Buttons_menu:
             types.InlineKeyboardButton("Не напоминать", callback_data="reminder_none")
         )
         return markup
+
+
