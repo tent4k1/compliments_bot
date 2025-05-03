@@ -31,72 +31,119 @@ class Buttons_menu:
         )
         return markup
 
-    @staticmethod
-    def get_repeat_menu():
+    def get_repeat_menu(selected_option=None): # Создает меню выбора повторения события
         markup = types.InlineKeyboardMarkup(row_width=2)
-        markup.add(
-            types.InlineKeyboardButton("🔁 Повторять ежедневно", callback_data="repeat_daily"),
-            types.InlineKeyboardButton("📅 Только один раз", callback_data="repeat_once"),
+
+        daily_btn = types.InlineKeyboardButton(
+            "✅ Повторять ежедневно" if selected_option == 'daily' else "🔁 Повторять ежедневно",
+            callback_data="repeat_daily"
         )
+
+        once_btn = types.InlineKeyboardButton(
+            "✅ Только один раз" if selected_option == 'once' else "📅 Только один раз",
+            callback_data="repeat_once"
+        )
+
+        markup.add(daily_btn, once_btn)
         return markup
 
-    @staticmethod
-    def get_time_menu():
-        markup = types.InlineKeyboardMarkup()
-        times = ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00']
+    def get_time_menu(selected_time=None, include_back=True): # Создает меню выбора времени
+        markup = types.InlineKeyboardMarkup(row_width=3)
+
+        times = ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00']
+
+        buttons = []
         for t in times:
-            markup.add(types.InlineKeyboardButton(t, callback_data=f"time_{t}"))
-        markup.row(types.InlineKeyboardButton("🌙 На весь день", callback_data="time_allday"))
-        markup.row(types.InlineKeyboardButton("🕓 Ввести вручную", callback_data="time_custom"))
-        markup.row(types.InlineKeyboardButton("🔙 Назад", callback_data="back_to_days"))
+            prefix = "✅ " if selected_time == t else ""
+            buttons.append(
+                types.InlineKeyboardButton(f"{prefix}{t}", callback_data=f"time_{t}")
+            )
+
+        for i in range(0, len(buttons), 3):
+            markup.row(*buttons[i:i + 3])
+
+        all_day_btn = types.InlineKeyboardButton(
+            "✅ Весь день" if selected_time == 'allday' else "🌙 Весь день",
+            callback_data="time_allday"
+        )
+
+        custom_btn = types.InlineKeyboardButton(
+            "✏️ Ввести вручную",
+            callback_data="time_custom"
+        )
+
+        markup.row(all_day_btn)
+        markup.row(custom_btn)
+
+        if include_back:
+            markup.row(types.InlineKeyboardButton("🔙 Назад", callback_data="back_to_days"))
+
         return markup
 
     @staticmethod
-    def get_year_menu(start_year=None, years_forward=3):
-        if start_year is None:
-            start_year = datetime.now().year
-
-        markup = types.InlineKeyboardMarkup(row_width=2)
+    def get_calendar_menu(include_back=True): # Создает главное меню календаря
+        markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
         buttons = [
-            types.InlineKeyboardButton(str(year), callback_data=f"year_{year}")
-            for year in range(start_year, start_year + years_forward)
+            types.KeyboardButton("📆 Добавить событие"),
+            types.KeyboardButton('📋 Мои события')
+        ]
+
+        if include_back:
+            buttons.append(types.KeyboardButton('🔙 Назад'))
+
+        markup.add(*buttons)
+        return markup
+
+    @staticmethod
+    def get_year_menu(current_year=None, years_range=5): # Создает меню выбора года
+        markup = types.InlineKeyboardMarkup(row_width=3)
+        current_year = current_year or datetime.now().year
+        buttons = [
+            types.InlineKeyboardButton(
+                f"{'✅ ' if year == current_year else ''}{year}",
+                callback_data=f'year_{year}'
+            )
+            for year in range(current_year, current_year + years_range)
         ]
         markup.add(*buttons)
         markup.add(types.InlineKeyboardButton("🔙 Назад", callback_data="main_menu"))
         return markup
 
     @staticmethod
-    def get_calendar_menu():
-        markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-        btn_add_rem = types.KeyboardButton('📆 Добавить событие')
-        btn_my_rem = types.KeyboardButton('📋 Мои события')
-        btn_back = types.KeyboardButton('🔙 Назад')
-
-        markup.add(btn_my_rem, btn_add_rem, btn_back)
-        return markup
-
-    @staticmethod
-    def get_month_menu():
-        markup = types.InlineKeyboardMarkup(row_width=2)
+    def get_month_menu(selected_month=None): # Создает меню выбора месяца с возможностью выделения выбранного
+        markup = types.InlineKeyboardMarkup(row_width=4)
         months = [
-            ('Январь', '01'), ('Февраль', '02'), ('Март', '03'),
-            ('Апрель', '04'), ('Май', '05'), ('Июнь', '06'),
-            ('Июль', '07'), ('Август', '08'), ('Сентябрь', '09'),
-            ('Октябрь', '10'), ('Ноябрь', '11'), ('Декабрь', '12')
+            ('Январь', 1), ('Февраль', 2), ('Март', 3),
+            ('Апрель', 4), ('Май', 5), ('Июнь', 6),
+            ('Июль', 7), ('Август', 8), ('Сентябрь', 9),
+            ('Октябрь', 10), ('Ноябрь', 11), ('Декабрь', 12)
         ]
-        buttons = [types.InlineKeyboardButton(name, callback_data=f'month_{num}') for name, num in months]
+
+        buttons = [
+            types.InlineKeyboardButton(
+                f"{'✅ ' if num == selected_month else ''}{name}",
+                callback_data=f'month_{num}'
+            )
+            for name, num in months
+        ]
+
         markup.add(*buttons)
         markup.add(types.InlineKeyboardButton("🔙 Назад", callback_data="back_to_years"))
         return markup
 
     @staticmethod
-    def get_day_menu(month: int, year: int):
-        markup = types.InlineKeyboardMarkup(row_width=2)
+    def get_day_menu(month: int, year: int, selected_day=None): # Создает меню выбора дня с учетом количества дней в месяце
+        markup = types.InlineKeyboardMarkup(row_width=7)
         num_days = calendar.monthrange(year, month)[1]
+
         buttons = [
-            types.InlineKeyboardButton(str(day), callback_data=f'day_{day}')
+            types.InlineKeyboardButton(
+                f"{'✅ ' if day == selected_day else ''}{day}",
+                callback_data=f'day_{day}'
+            )
             for day in range(1, num_days + 1)
         ]
+
         markup.add(*buttons)
         markup.add(types.InlineKeyboardButton("🔙 Назад", callback_data="back_to_months"))
         return markup

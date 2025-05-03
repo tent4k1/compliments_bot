@@ -13,15 +13,15 @@ class DeleteState:
         self.selected_events = {}
 
 class Reminders_Handlers:
-    def __init__(self, bot, db, bm, uc, scheduler):
+    def __init__(self, bot, db, bm, scheduler):
         self.bot = bot
         self.db = db
         self.bm = bm
-        self.uc = uc
         self.scheduler = scheduler
         self.logger = logging.getLogger(__name__)
         self.delete_state = DeleteState()
         self._register_handlers()
+        self.user_event_data = {}
 
     @staticmethod
     def group_events_by_date(events):
@@ -138,13 +138,25 @@ class Reminders_Handlers:
             self.logger.error(f"Error in process_new_text: {e}")
             self.bot.send_message(message.chat.id, "❌ Произошла ошибка")
 
+    def start_event_creation(self, user_id):
+        if user_id not in self.user_event_data:
+            self.user_event_data[user_id] = {}
+        return self.bm.get_year_menu()
+
     def _register_handlers(self):
+        @self.bot.callback_query_handler(func=lambda call: call.data == ("add_reminder"))
+        def handle_add_event(message):
+            user_id = message.chat.id
+            if user_id not in self.user_event_data:
+                self.user_event_data[user_id] = {}
+            self.bot.send_message(user_id, "Выберите год:", reply_markup=self.bm.get_year_menu())
+
         @self.bot.callback_query_handler(func=lambda call: call.data.startswith("year_"))
         def handle_year_selection(call):
             user_id = call.message.chat.id
             try:
                 selected_year = int(call.data.split("_")[1])
-                self.uc.user_event_data[user_id]['year'] = selected_year
+                self.user_event_data[user_id]['year'] = selected_year
                 self.bot.edit_message_text(
                     f"Вы выбрали {selected_year} год. Теперь выберите месяц:",
                     call.message.chat.id,
@@ -160,8 +172,8 @@ class Reminders_Handlers:
             user_id = call.message.chat.id
             try:
                 selected_month = int(call.data.split('_')[1])
-                self.uc.user_event_data[user_id]['month'] = selected_month
-                year = self.uc.user_event_data[user_id].get('year', datetime.now().year)
+                self.user_event_data[user_id]['month'] = selected_month
+                year = self.user_event_data[user_id].get('year', datetime.now().year)
                 self.bot.edit_message_text(
                     f"Вы выбрали месяц: {selected_month}. Теперь выберите день:",
                     call.message.chat.id,
@@ -177,7 +189,7 @@ class Reminders_Handlers:
             user_id = call.message.chat.id
             try:
                 selected_day = int(call.data.split('_')[1])
-                self.uc.user_event_data[user_id]['day'] = selected_day
+                self.user_event_data[user_id]['day'] = selected_day
                 self.bot.edit_message_text(
                     f"Вы выбрали день: {selected_day}. Теперь выберите время:",
                     call.message.chat.id,
@@ -195,8 +207,8 @@ class Reminders_Handlers:
                 selected = call.data.split('_')[1]
 
                 if selected == 'allday':
-                    self.uc.user_event_data[user_id]['time'] = '08:00'
-                    self.uc.user_event_data[user_id]['all_day'] = 1
+                    self.user_event_data[user_id]['time'] = '08:00'
+                    self.user_event_data[user_id]['all_day'] = 1
                     self.bot.edit_message_text(
                         "Вы выбрали: весь день. Хотите, чтобы событие повторялось?",
                         call.message.chat.id,
@@ -204,11 +216,11 @@ class Reminders_Handlers:
                         reply_markup=self.bm.get_reminder_offset_menu()
                     )
                 elif selected == 'custom':
-                    self.uc.user_event_data[user_id]['awaiting_time'] = True
+                    self.user_event_data[user_id]['awaiting_time'] = True
                     self.bot.send_message(user_id, "Введите время в формате ЧЧ:ММ (например, 09:30):")
                 else:
-                    self.uc.user_event_data[user_id]['time'] = selected
-                    self.uc.user_event_data[user_id]['all_day'] = 0
+                    self.user_event_data[user_id]['time'] = selected
+                    self.user_event_data[user_id]['all_day'] = 0
                     self.bot.edit_message_text(
                         f"Вы выбрали время: {selected}. Теперь выберите, за сколько времени напомнить:",
                         call.message.chat.id,
@@ -225,9 +237,9 @@ class Reminders_Handlers:
             try:
                 offset = call.data.split('_')[1]
                 if offset == 'none':
-                    self.uc.user_event_data[user_id]['reminder_offset'] = 0
+                    self.user_event_data[user_id]['reminder_offset'] = 0
                 else:
-                    self.uc.user_event_data[user_id]['reminder_offset'] = int(offset)
+                    self.user_event_data[user_id]['reminder_offset'] = int(offset)
 
                 self.bot.edit_message_text(
                     "Хотите, чтобы событие повторялось ежедневно или было одноразовым?",
@@ -243,7 +255,7 @@ class Reminders_Handlers:
         def handle_repeat_selection(call):
             user_id = call.message.chat.id
             try:
-                self.uc.user_event_data[user_id]['repeat'] = 1 if call.data == "repeat_daily" else 0
+                self.user_event_data[user_id]['repeat'] = 1 if call.data == "repeat_daily" else 0
                 self.bot.edit_message_text(
                     "✏️ Введите описание события:",
                     call.message.chat.id,
@@ -253,10 +265,10 @@ class Reminders_Handlers:
                 self.logger.error(f"Error in repeat selection: {e}")
                 self.bot.answer_callback_query(call.id, "Ошибка выбора повторения")
 
-        @self.bot.message_handler(func=lambda message: self.uc.user_event_data.get(message.chat.id, {}).get('repeat') is not None)
+        @self.bot.message_handler(func=lambda message: self.user_event_data.get(message.chat.id, {}).get('repeat') is not None)
         def handle_event_description(message):
             user_id = message.chat.id
-            event_data = self.uc.user_event_data.get(user_id, {})
+            event_data = self.user_event_data.get(user_id, {})
 
             required_fields = ['year', 'month', 'day', 'time']
             if not all(field in event_data for field in required_fields):
@@ -298,7 +310,7 @@ class Reminders_Handlers:
                 else:
                     self.bot.send_message(user_id, "⚠️ Событие сохранено, но не удалось установить напоминание")
 
-                self.uc.user_event_data.pop(user_id, None)
+                self.user_event_data.pop(user_id, None)
 
             except Exception as e:
                 self.logger.error(f"System error in handle_event_description: {e}")
@@ -451,15 +463,15 @@ class Reminders_Handlers:
                 self.logger.error(f"Error in toggle_event_selection: {e}")
                 self.bot.answer_callback_query(call.id, "Ошибка выбора события")
 
-        @self.bot.message_handler(func=lambda message: self.uc.user_event_data.get(message.chat.id, {}).get('awaiting_time'))
+        @self.bot.message_handler(func=lambda message: self.user_event_data.get(message.chat.id, {}).get('awaiting_time'))
         def process_custom_time(message):
             user_id = message.chat.id
             time_input = message.text.strip()
 
             try:
                 datetime.strptime(time_input, "%H:%M")
-                self.uc.user_event_data[user_id]['time'] = time_input
-                self.uc.user_event_data[user_id]['awaiting_time'] = False
+                self.user_event_data[user_id]['time'] = time_input
+                self.user_event_data[user_id]['awaiting_time'] = False
 
                 self.bot.send_message(
                     user_id,
@@ -602,3 +614,46 @@ class Reminders_Handlers:
             )
 
             self.bot.send_message(chat_id, text, reply_markup=markup)
+
+        @self.bot.callback_query_handler(func=lambda call: call.data == "main_menu")
+        def handle_back_to_menu(call):
+            try:
+                self.bot.edit_message_text(
+                    chat_id=call.message.chat.id,
+                    message_id=call.message.message_id,
+                    text="Вы вернулись в меню календаря",
+                    reply_markup=self.bm.get_calendar_menu()
+                )
+            except Exception as e:
+                self.logger.error(f"Error in handle_back_to_menu: {e}")
+                self.bot.answer_callback_query(call.id, "Ошибка при возврате в меню")
+
+        @self.bot.callback_query_handler(func=lambda call: call.data == "back_to_years")
+        def handle_back_to_years(call):
+            try:
+                self.bot.edit_message_reply_markup(
+                    chat_id=call.message.chat.id,
+                    message_id=call.message.message_id,
+                    reply_markup=self.bm.get_year_menu()
+                )
+                self.bot.answer_callback_query(call.id)
+            except Exception as e:
+                self.logger.error(f"Error in handle_back_to_years: {e}")
+                self.bot.answer_callback_query(call.id, "Ошибка при возврате к выбору года")
+
+        @self.bot.callback_query_handler(func=lambda call: call.data == "back_to_months")
+        def handle_back_to_months(call):
+            try:
+                user_id = call.from_user.id
+                year = self.user_event_data[user_id].get('year', datetime.now().year)
+
+                self.bot.edit_message_reply_markup(
+                    chat_id=call.message.chat.id,
+                    message_id=call.message.message_id,
+                    reply_markup=self.bm.get_month_menu()
+                )
+                self.bot.answer_callback_query(call.id)
+            except Exception as e:
+                self.logger.error(f"Error in handle_back_to_months: {e}")
+                self.bot.answer_callback_query(call.id, "Ошибка при возврате к выбору месяца")
+

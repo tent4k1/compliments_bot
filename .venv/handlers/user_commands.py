@@ -206,10 +206,8 @@ class UserCommands:
 
         @self.bot.message_handler(func=lambda message: message.text == "📆 Добавить событие")
         def handle_add_event(message):
-            user_id = message.chat.id
-            if user_id not in self.user_event_data:
-                self.user_event_data[user_id] = {}
-            self.bot.send_message(user_id, "Выберите год:", reply_markup=self.bm.get_year_menu())
+            markup = self.rh.start_event_creation(message.chat.id)
+            self.bot.send_message(message.chat.id, "Выберите год:", reply_markup=markup)
 
         @self.bot.message_handler(func=lambda message: message.text == "📋 Мои события")
         def handle_view_events(message):

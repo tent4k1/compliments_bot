@@ -53,9 +53,8 @@ def main():
         bm = Buttons_menu()
         wh = Weather_Handlers()
         scheduler = ComplimentScheduler(bot, db)
-        uc = UserCommands(bot, db, bm, wh, None, scheduler)
-        rh = Reminders_Handlers(bot, db, bm, uc, scheduler)
-        uc.rh = rh
+        rh = Reminders_Handlers(bot, db, bm, scheduler)
+        uc = UserCommands(bot, db, bm, wh, rh, scheduler)
 
         restored_users = 0
         for user_id in db.get_subscribed_users():
