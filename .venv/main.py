@@ -31,13 +31,13 @@ def run_health_check(scheduler): # Фоновая проверка состоя�
     while True:
         try:
             status = scheduler.check_working()
-            logging.info(
+            logger.info(
                 f"Health check: {status['users_count']} users, "
                 f"{status['compliments_available']} compliments available"
             )
             time.sleep(300)
         except Exception as e:
-            logging.error(f"Health check failed: {e}")
+            logger.error(f"Health check failed: {e}")
             time.sleep(60)
 def load_events():
     scheduler = ComplimentScheduler(bot, db)
@@ -66,7 +66,7 @@ def main():
                 )
                 restored_users += 1
             except Exception as e:
-                logging.error(f"Failed to notify user {user_id}: {e}")
+                logger.error(f"Failed to notify user {user_id}: {e}")
                 db.set_subscription(user_id, False)
 
         logging.info(f"Restored {restored_users} subscriptions")
@@ -90,15 +90,15 @@ def main():
                 f"• Последняя отправка: {status['last_compliment_sent'] or 'еще не было'}"
             )
 
-        logging.info("Бот запущен и готов к работе")
+        logger.info("Бот запущен и готов к работе")
         bot.infinity_polling()
 
     except Exception as e:
-        logging.critical(f"Fatal error: {e}")
+        logger.critical(f"Fatal error: {e}")
     finally:
         if 'scheduler' in locals():
             scheduler.stop()
-        logging.info("Бот завершил работу")
+        logger.info("Бот завершил работу")
 
 if __name__ == "__main__":
     main()

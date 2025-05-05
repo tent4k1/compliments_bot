@@ -3,6 +3,7 @@ import re
 from datetime import datetime
 from itertools import groupby
 
+from parsers.reminder_parser import ReminderParser
 from database import Database
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 from telebot import TeleBot, types
@@ -17,10 +18,15 @@ class Reminders_Handlers:
         self.db = db
         self.bm = bm
         self.scheduler = scheduler
+        self.parser = ReminderParser()
         self.logger = logging.getLogger(__name__)
         self.delete_state = DeleteState()
         self._register_handlers()
         self.user_event_data = {}
+
+    def _handle_callback_error(self, call, message, exception): # Обработка ошибок
+        self.logger.error(f"{message}: {exception}")
+        self.bot.answer_callback_query(call.id, message)
 
     @staticmethod
     def group_events_by_date(events): # Сортировка событий по дате
@@ -35,7 +41,7 @@ class Reminders_Handlers:
             )
             return groupby(sorted_events, key=lambda x: f"{x['day']}.{x['month']}.{x['year']}")
         except Exception as e:
-            self.logger.warning(f"[group_events_by_date] Ошибка при сортировке событий: {e}")
+            logging.getLogger(__name__).warning(f"Ошибка при сортировке событий: {e}")
 
     @staticmethod
     def get_status_icon(event): # Выбор иконки для события (при выводе пользователю)
@@ -61,13 +67,15 @@ class Reminders_Handlers:
 
     @staticmethod
     def escape_markdown_v2(text: str) -> str: # Экранирование символов
-        escape_chars = r'\_*[]()~`>#+-=|{}.!'
-        return re.sub(rf'([{re.escape(escape_chars)}])', r'\\\1', text)
+        try:
+            escape_chars = r'\_*[]()~`>#+-=|{}.!'
+            return re.sub(rf'([{re.escape(escape_chars)}])', r'\\\1', text)
+        except Exception as e:
+            logging.getLogger(__name__).warning(f"Ошибка при экранировании символов: {e}")
 
     def send_grouped_events(self, chat_id, events, page=0, message_id=None): # Отправка сгруппированных событий
         if not isinstance(events, list):
-            self.logger.error(f"Expected list, got {type(events)}: {events}")
-            self.bot.send_message(chat_id, "❌ Ошибка: неверный формат событий")
+            self._handle_callback_error(call, "❌ Ошибка: неверный формат событий", e)
             return
 
         if not events:
@@ -84,28 +92,31 @@ class Reminders_Handlers:
             self._handle_callback_error(call, "❌ Ошибка при обработке событий", e)
             return
 
-        dates = list(grouped_events.keys())
-        pages = [dates[i:i + 3] for i in range(0, len(dates), 3)]
+        try:
+            dates = list(grouped_events.keys())
+            pages = [dates[i:i + 3] for i in range(0, len(dates), 3)]
 
-        if not pages:
-            self.bot.send_message(chat_id, "У вас нет событий")
-            return
+            if not pages:
+                self.bot.send_message(chat_id, "У вас нет событий")
+                return
 
-        if page >= len(pages):
-            page = len(pages) - 1
+            if page >= len(pages):
+                page = len(pages) - 1
 
-        current_page = pages[page]
-        text = f"*📅 Ваши события \\(страница {page + 1}/{len(pages)}\\)*\n\n"
+            current_page = pages[page]
+            text = f"*📅 Ваши события \\(страница {page + 1}/{len(pages)}\\)*\n\n"
 
-        for date in current_page:
-            text += f"*🗓 {self.escape_markdown_v2(date)}*\n"
-            for event in grouped_events[date]:
-                time = event['time'] if event.get('time') else "⏰ Весь день"
-                icon = self.get_status_icon(event)
-                desc = self.escape_markdown_v2(event['event_description'])
-                eid = self.escape_markdown_v2(str(event.get('id', '')))
-                text += f"    \\- {icon} {self.escape_markdown_v2(time)}: {desc} \\[ID: {eid}\\]\n"
-            text += "\n"
+            for date in current_page:
+                text += f"*🗓 {self.escape_markdown_v2(date)}*\n"
+                for event in grouped_events[date]:
+                    time = event['time'] if event.get('time') else "⏰ Весь день"
+                    icon = self.get_status_icon(event)
+                    desc = self.escape_markdown_v2(event['event_description'])
+                    eid = self.escape_markdown_v2(str(event.get('id', '')))
+                    text += f"    \\- {icon} {self.escape_markdown_v2(time)}: {desc} \\[ID: {eid}\\]\n"
+                text += "\n"
+        except Exception as e:
+            self._handle_callback_error(call, "Ошибка при получении количества страниц", e)
 
         markup = types.InlineKeyboardMarkup()
 
@@ -140,11 +151,6 @@ class Reminders_Handlers:
             text=text,
             reply_markup=reply_markup
         )
-
-    def _handle_callback_error(self, call, message, exception): # Обработка ошибок
-        self.logger.error(f"{message}: {exception}")
-        self.bot.answer_callback_query(call.id, message)
-
 
     def _update_event_list(self, call, user_id, success_text): # Обновление списка событий
         try:
@@ -247,7 +253,8 @@ class Reminders_Handlers:
             except ValueError:
                 self.bot.send_message(user_id, "⛔ Неверный формат времени. Пожалуйста, введите в формате ЧЧ:ММ.")
 
-    def _register_delete_handlers(self): # Обработчики удаления событий
+    # ========== Обработчики удаления событий ==========
+    def _register_delete_handlers(self):
         @self.bot.callback_query_handler(func=lambda call: call.data == "delete_mode") # Режим удаления
         def handle_delete_mode(call):
             try:
@@ -302,20 +309,28 @@ class Reminders_Handlers:
                 user_id = call.from_user.id
                 event_id = int(call.data.split("_")[2])
                 selected = self.delete_state.selected_events.setdefault(user_id, set())
-
+            except Exception as e:
+                self._handle_callback_error(call, "Ошибка при выборе объекта для удаления", e)
+            try:
                 if event_id in selected:
                     selected.remove(event_id)
                 else:
                     selected.add(event_id)
-
+            except Exception as e:
+                self._handle_callback_error(call, "Ошибка при установке события для удаления", e)
+            try:
                 events = self.db.get_all_events(user_id)
+            except Exception as e:
+                self._handle_callback_error(call, "Ошибка при получении событий из БД", e)
+            try:
                 markup = self.bm.get_delete_menu(events, selected)
                 self._edit_message(call, "🗑 Выберите события для удаления:", markup)
                 self.bot.answer_callback_query(call.id)
             except Exception as e:
                 self._handle_callback_error(call, "Ошибка выбора события", e)
 
-    def _register_navigation_handlers(self): # Обработчики навигации
+    # ========== Обработчики навигации в событиях ==========
+    def _register_navigation_handlers(self):
         def send_event_page(chat_id, pages, page_num): # Отправка страницы событий
             try:
                 markup = types.InlineKeyboardMarkup()
@@ -421,7 +436,8 @@ class Reminders_Handlers:
         except Exception as e:
             self.logger.warning(f"[_get_navigation_buttons] Ошибка при создании кнопок навигации: {e}")
 
-    def _register_edit_handlers(self): # Обработчики редактирования событий
+    # ========== Обработчики редактирования событий ==========
+    def _register_edit_handlers(self):
         @self.bot.callback_query_handler(func=lambda call: call.data == "edit_mode") # Режим редактирования
         def enter_edit_mode(call):
             try:
@@ -529,7 +545,7 @@ class Reminders_Handlers:
             except Exception as e:
                 self._handle_callback_error(call, "Ошибка при сохранении нового времени", e)
 
-        @self.bot.callback_query_handler(func=lambda call: call.data.startswith("editrepeat_"))
+        @self.bot.callback_query_handler(func=lambda call: call.data.startswith("editrepeat_")) # Редактирование повторения напоминания
         def edit_event_repeat(call):
             try:
                 event_id = call.data.split("_")[1]
@@ -565,13 +581,102 @@ class Reminders_Handlers:
             except Exception as e:
                 self._handle_callback_error(call, "Ошибка при вызове списка событий", e)
 
-    def _register_other_handlers(self): # Прочие обработчики
+    # ========== Прочие обработчики событий ==========
+    def _register_other_handlers(self):
+        @self.bot.message_handler(func=lambda msg: 'напомни' in msg.text.lower()) # Обработчик для парсера сообщений
+        def handle_reminder(message):
+            user_id = message.from_user.id
+            command = message.text.lower()
+
+            try:
+                event_data = self.parser.parse_event(command)
+            except Exception as e:
+                self._handle_callback_error(call, "Ошибка при разборе команды", e)
+                return
+
+            try:
+                if not event_data:
+                    self.bot.send_message(user_id, "Не удалось распознать дату или время для события.")
+                    return
+
+                if "date" not in event_data:
+                    raise ValueError("Не найдена дата события")
+            except Exception as e:
+                self._handle_callback_error(call, "Ошибка с обязательными данными", e)
+                return
+
+            try:
+                date_obj = event_data["date"]
+                event_data["year"] = date_obj.year
+                event_data["month"] = date_obj.month
+                event_data["day"] = date_obj.day
+                event_data["user_id"] = user_id
+            except Exception as e:
+                self._handle_callback_error(call, "Ошибка при обработке даты", e)
+                return
+
+            try:
+                event_id = self.db.save_event(
+                    user_id=user_id,
+                    year=event_data['year'],
+                    month=event_data['month'],
+                    day=event_data['day'],
+                    time=event_data['time'],
+                    event_description=event_data['event_description'],
+                    all_day=event_data.get('all_day', 0),
+                    repeat=event_data.get('repeat', 0),
+                    reminder_offset=event_data.get('reminder_offset', 0)
+                )
+            except Exception as e:
+                self._handle_callback_error(call, "Ошибка при сохранении события", e)
+                return
+
+            try:
+                if not event_id:
+                    self.bot.send_message(user_id, "Не удалось сохранить событие.")
+                    return
+
+                event_data["id"] = event_id
+                self.scheduler.schedule_event_reminder(event_data, user_id)
+                self.bot.send_message(user_id, f"Событие создано: {event_data['event_description']}")
+            except Exception as e:
+                self._handle_callback_error(call, "Ошибка при создании напоминания", e)
+
+        def send_event_reminder(user_id, event_data):
+            try:
+                event_time = datetime(
+                    year=event_data['date'].year,
+                    month=event_data['date'].month,
+                    day=event_data['date'].day,
+                    hour=int(event_data['time'].split(':')[0]),
+                    minute=int(event_data['time'].split(':')[1])
+                )
+                reminder_time = event_time - timedelta(minutes=event_data.get('reminder_offset', 0))
+
+                time_left = event_data.get('reminder_offset', 0)
+            except Exception as e:
+                self.logger.error(f"[send_event_reminder] Ошибка при получении времени: {e}")
+
+            try:
+                time_str = "сейчас" if time_left == 0 else f"{time_left} мин."
+                self.bot.send_message(
+                    user_id,
+                    f"🔔 Напоминание: {event_data['event_description']}\n"
+                    f"⏰ Время события: {event_data['time']}\n"
+                    f"⏳ До события осталось: {time_str}."
+                )
+            except Exception as e:
+                self.logger.warning(f"[send_event_reminder] Ошибка при отправке сообщения пользователю: {e}")
+
         @self.bot.callback_query_handler(func=lambda call: call.data == ("add_reminder")) # Обработчик "Добавить событие"
         def handle_add_event(message):
-            user_id = message.chat.id
-            if user_id not in self.user_event_data:
-                self.user_event_data[user_id] = {}
-            self.bot.send_message(user_id, "Выберите год:", reply_markup=self.bm.get_year_menu())
+            try:
+                user_id = message.chat.id
+                if user_id not in self.user_event_data:
+                    self.user_event_data[user_id] = {}
+                self.bot.send_message(user_id, "Выберите год:", reply_markup=self.bm.get_year_menu())
+            except Exception as e:
+                self._handle_callback_error(call, "Ошибка при создании события", e)
 
         @self.bot.callback_query_handler(func=lambda call: call.data.startswith('reminder_')) # За сколько напомнить
         def handle_reminder_offset_selection(call):
@@ -623,11 +728,11 @@ class Reminders_Handlers:
                     repeat=event_data.get('repeat', 0),
                     reminder_offset=event_data.get('reminder_offset', 0)
                 )
+            except Exception as e:
+                self._handle_callback_error(call, "Ошибка при сохранении события в БД", e)
+                return
 
-                if not event_id:
-                    self.bot.send_message(user_id, "❌ Ошибка сохранения события в БД")
-                    return
-
+            try:
                 event_data_for_scheduler = {
                     'id': event_id,
                     'year': event_data['year'],

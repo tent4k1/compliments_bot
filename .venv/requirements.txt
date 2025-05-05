@@ -8,3 +8,4 @@ pytz==2025.2
 scheduler==0.8.8
 telebot==0.0.5
 requests==2.32.3
+dateparser==1.2.1

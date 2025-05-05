@@ -95,7 +95,7 @@ class Weather_Handlers:
             return '🌈'
 
     @staticmethod
-    def get_weather_data(city_name: str) -> dict:
+    def get_weather_data(city_name: str) -> dict: # Отправка запроса погоды на сайт
         base_url = "http://api.openweathermap.org/data/2.5/weather"
         params = {
             'q': city_name,

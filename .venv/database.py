@@ -49,13 +49,13 @@ class Database:
         self._create_tables()
         self._check_migrations()
 
-        logger.info(f"Database initialized at {self.db_path}")
+        logger.info(f"БД инициалиирована в: {self.db_path}")
 
     def _ensure_data_dir(self): # Создание папки data если не существует
         try:
             Path('data').mkdir(exist_ok=True)
         except Exception as e:
-            logger.error(f"Failed to create data directory: {e}")
+            logger.error(f"[_ensure_data_dir] Ошибка при создании директории: {e}")
             raise
 
     def _create_tables(self): # Создание таблиц базы данных с актуальной схемой
@@ -133,9 +133,9 @@ class Database:
                 for table in tables:
                     self.conn.execute(table)
                 self.conn.execute("INSERT OR IGNORE INTO db_meta (version) VALUES (?)", (self.DB_VERSION,))
-            logger.info("Database tables created/verified")
+            logger.info("Таблицы БД созданы/прошли проверку")
         except Exception as e:
-            logger.error(f"Failed to create tables: {e}")
+            logger.error(f"[_create_tables] Ошибка при создании таблиц: {e}")
             raise
 
     def _check_migrations(self):
@@ -163,10 +163,10 @@ class Database:
                     with self.conn:
                         cursor.execute("DELETE FROM db_meta")
                         cursor.execute("INSERT INTO db_meta (version) VALUES (?)", (version,))
-                    logger.info(f"Database migrated to version {version}")
+                    logger.info(f"БД успешно мигрировала на версию: {version}")
 
         except Exception as e:
-            logger.error(f"Migration failed: {e}")
+            logger.error(f"[_check_migrations] Ошибка при миграции таблицы: {e}")
             raise
 
     def _migrate_v1(self): # Миграция на версию 1: добавление language_code и last_active
@@ -178,11 +178,11 @@ class Database:
 
             if 'language_code' not in columns:
                 self.conn.execute("ALTER TABLE users ADD COLUMN language_code TEXT DEFAULT NULL")
-                logger.info("Added language_code column to users table")
+                logger.info("Добавлен language_code колонка для users таблицы")
 
             if 'last_active' not in columns:
                 self.conn.execute("ALTER TABLE users ADD COLUMN last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-                logger.info("Added last_active column to users table")
+                logger.info("Добавлена last_active колонка для users таблицы")
 
     def _migrate_v2(self): # Миграция на версию 2: добавление таблицы db_meta
         with self.conn:
@@ -195,7 +195,7 @@ class Database:
                 )
                 """)
                 self.conn.execute("INSERT INTO db_meta (version) VALUES (2)")
-                logger.info("Added db_meta table")
+                logger.info("Добавлена db_meta таблица")
 
     def _migrate_v3(self):
         with self.conn:
@@ -215,7 +215,7 @@ class Database:
             cursor.execute(query, (user_id,))
             return cursor.fetchone() is not None
         except Exception as e:
-            logger.error(f"Failed to check user existence {user_id}: {e}")
+            logger.error(f"[user_exists] Ошибка при проверке существования пользователя {user_id}: {e}")
             return False
 
     def add_user(self, user_id: int, username: str = None, first_name: str = None, last_name: str = None,
@@ -233,10 +233,10 @@ class Database:
         try:
             with self.conn:
                 self.conn.execute(query, params)
-            logger.info(f"User {user_id} added/updated")
+            logger.info(f"Пользователь {user_id} добавлен/обновлен")
             return True
         except Exception as e:
-            logger.error(f"Failed to add user {user_id}: {e}")
+            logger.error(f"[add_user] Ошибка при добавлении пользователя {user_id}: {e}")
             return False
 
     def set_subscription(self, user_id: int, status: bool) -> bool: # Установка статуса подписки
@@ -248,10 +248,10 @@ class Database:
         try:
             with self.conn:
                 self.conn.execute(query, (status, datetime.now(), user_id))
-            logger.info(f"User {user_id} subscription set to {status}")
+            logger.info(f"Пользователю {user_id} статус подписки изменен на: {status}")
             return True
         except Exception as e:
-            logger.error(f"Failed to set subscription for {user_id}: {e}")
+            logger.error(f"[set_subscription] Ошибка при установке статуса подписки пользователя {user_id}: {e}")
             return False
 
     def get_user_info(self, user_id: int) -> Optional[Tuple]: # Получение информации о пользователе
@@ -265,7 +265,7 @@ class Database:
             cursor.execute(query, (user_id,))
             return cursor.fetchone()
         except Exception as e:
-            logger.error(f"Failed to get user info {user_id}: {e}")
+            logger.error(f"[get_user_info] Ошибка при получении информации о пользователе {user_id}: {e}")
             return None
 
     def is_user_subscribed(self, user_id: int) -> Optional[bool]: # Проверка статуса подписки
@@ -276,7 +276,7 @@ class Database:
             result = cursor.fetchone()
             return result[0] if result else None
         except Exception as e:
-            logger.error(f"Failed to check subscription for {user_id}: {e}")
+            logger.error(f"[is_user_subscribed] Ошибка при получении статуса подписки {user_id}: {e}")
             return None
 
     def get_subscribed_users(self) -> Set[int]: # Получение ID всех подписанных пользователей
@@ -286,7 +286,7 @@ class Database:
             cursor.execute(query)
             return {row[0] for row in cursor.fetchall()}
         except Exception as e:
-            logger.error(f"Failed to get subscribed users: {e}")
+            logger.error(f"[get_subscribed_users] Ошибка при получении подписчиков: {e}")
             return set()
 
     # ========== Compliment Methods ==========
@@ -295,13 +295,13 @@ class Database:
         try:
             with self.conn:
                 self.conn.execute(query, (text,))
-            logger.info(f"Compliment added: {text[:20]}...")
+            logger.info(f"Комплимент успешно добавлен: {text[:20]}...")
             return True
         except sqlite3.IntegrityError:
-            logger.warning(f"Compliment already exists: {text[:20]}...")
+            logger.warning(f"[add_compliment] Комплимент уже существует: {text[:20]}...")
             return False
         except Exception as e:
-            logger.error(f"Failed to add compliment: {e}")
+            logger.error(f"[add_compliment] Ошибка при добавлении комплимента: {e}")
             return False
 
     def get_random_compliment(self, user_id: int) -> Optional[Tuple[int, str]]:
@@ -325,13 +325,13 @@ class Database:
             if compliment:
                 return compliment
 
-            logger.info(f"All compliments sent to user {user_id}. Resetting history.")
+            logger.info(f"Все комплименты пользователю {user_id} отправлены. Очистка истории.")
             self.reset_user_compliments(user_id)
 
             return _fetch_available_compliment()
 
         except Exception as e:
-            logger.error(f"Failed to get random compliment for user {user_id}: {e}")
+            logger.error(f"[get_random_compliment] Ошибка при получении случайного комплимента для: {user_id}: {e}")
             return None
 
     def record_sent_compliment(self, user_id: int, compliment_id: int) -> bool: # Запись отправленного комплимента
@@ -342,10 +342,10 @@ class Database:
         try:
             with self.conn:
                 self.conn.execute(query, (user_id, compliment_id))
-            logger.info(f"Recorded compliment {compliment_id} for user {user_id}")
+            logger.info(f"Записан комплимент {compliment_id} для пользователя: {user_id}")
             return True
         except Exception as e:
-            logger.error(f"Failed to record sent compliment: {e}")
+            logger.error(f"[record_sent_compliment] Ошибка при отправке комплимента: {e}")
             return False
 
     def reset_user_compliments(self, user_id: int) -> None:
@@ -353,9 +353,9 @@ class Database:
         try:
             with self.conn:
                 self.conn.execute(query, (user_id,))
-            logger.info(f"Reset compliment history for user {user_id}")
+            logger.info(f"[reset_user_compliments] Успешно сброшена история комплиментов для пользователя {user_id}")
         except Exception as e:
-            logger.error(f"Failed to reset compliments for user {user_id}: {e}")
+            logger.error(f"[reset_user_compliments] Ошибка при сбросе комплиментов для пользователя {user_id}: {e}")
 
     # ========== Wishlist Methods ==========
     def add_wish(self, user_id: int, wish_text: str) -> bool: # Добавление желания в список
@@ -367,7 +367,7 @@ class Database:
                 )
             return True
         except Exception as e:
-            logger.error(f"Failed to add wish: {e}")
+            logger.error(f"[add_wish] Ошибка при добавлении желания: {e}")
             return False
 
     def get_user_wishes(self, user_id: int) -> list: # Получение желаний пользователя
@@ -379,7 +379,7 @@ class Database:
             )
             return cursor.fetchall()
         except Exception as e:
-            logger.error(f"Failed to get wishes: {e}")
+            logger.error(f"[get_user_wishes] Ошибка при получении своих желаний: {e}")
             return []
 
     def get_partner_wishes(self, user_id: int) -> list: # Получение желаний партнера
@@ -396,7 +396,7 @@ class Database:
             )
             return cursor.fetchall()
         except Exception as e:
-            logger.error(f"Failed to get partner wishes: {e}")
+            logger.error(f"[get_partner_wishes] Ошибка при получении желаний партнера: {e}")
             return []
 
     def mark_fulfilled(self, wish_id: int) -> bool: # Пометить желание как исполненное
@@ -408,7 +408,7 @@ class Database:
                 )
             return True
         except Exception as e:
-            logger.error(f"Failed to mark wish fulfilled: {e}")
+            logger.error(f"[mark_fulfilled] Ошибка при отметке желания исполненным: {e}")
             return False
 
     def delete_wish(self, wish_id: int, user_id: int) -> bool: # Удаление желания с проверкой владельца
@@ -426,7 +426,7 @@ class Database:
                     (wish_id,))
                 return cursor.rowcount > 0
         except Exception as e:
-            logger.error(f"Failed to delete wish {wish_id}: {e}")
+            logger.error(f"[delete_wish] Ошибка при удалении желания {wish_id}: {e}")
             return False
 
     # ========== Stats Methods ==========
@@ -515,7 +515,7 @@ class Database:
             cursor.execute(query)
             return cursor.fetchone()[0]
         except Exception as e:
-            logger.error(f"Failed to get compliments count: {e}")
+            logger.error(f"[get_compliments_count] Ошибка при получении общего количества комплиментов: {e}")
             return 0
 
     def get_sent_today_count(self) -> int: # Количество отправленных сегодня комплиментов
@@ -528,7 +528,7 @@ class Database:
             cursor.execute(query)
             return cursor.fetchone()[0]
         except Exception as e:
-            logger.error(f"Failed to get sent today count: {e}")
+            logger.error(f"[get_sent_today_count] Ошибка при получении количества отправленных комплиментов сегодня: {e}")
             return 0
 
     def get_last_compliment_time(self) -> Optional[str]: # Время последней отправки комплимента
@@ -549,7 +549,7 @@ class Database:
             return str(result) if result else None
 
         except Exception as e:
-            logger.error(f"Failed to get last compliment time: {e}")
+            logger.error(f"[get_last_compliment_time] Ошибка при получении времени последнего отправленного комплимента: {e}")
             return None
 
     # ========== Backup Methods ==========
@@ -560,16 +560,16 @@ class Database:
         try:
             with sqlite3.connect(backup_path) as backup:
                 self.conn.backup(backup)
-            logger.info(f"Database backup created at {backup_path}")
+            logger.info(f"Бэкап БД успешно создан {backup_path}")
             return backup_path
         except Exception as e:
-            logger.error(f"Failed to create backup: {e}")
+            logger.error(f"[backup_database] Ошибка при создании бэкапа БД: {e}")
             return None
 
     def __del__(self): # Закрытие соединения при удалении объекта
         if hasattr(self, 'conn'):
             self.conn.close()
-            logger.info("Database connection closed")
+            logger.info("Соединение с БД успешно закрыто")
 
     def get_subscribed_users_count(self) -> int: # Количество подписанных пользователей
         query = "SELECT COUNT(*) FROM users WHERE is_subscribed = TRUE"
@@ -578,7 +578,7 @@ class Database:
             cursor.execute(query)
             return cursor.fetchone()[0]
         except Exception as e:
-            logger.error(f"Failed to get subscribed users count: {e}")
+            logger.error(f"[get_subscribed_users_count] Ошибка при получении количества подписчиков: {e}")
             return 0
 
     def get_detailed_stats(self) -> Dict: # Подробная статистика для админа с обработкой разных форматов времени
@@ -632,7 +632,7 @@ class Database:
                 'last_sent_time': last_sent_str
             }
         except Exception as e:
-            logger.error(f"Failed to get detailed stats: {e}")
+            logger.error(f"[get_detailed_stats] Ошибка при получении детализированной статистики: {e}")
             return {
                 'total_users': 0,
                 'active_subscriptions': 0,
@@ -646,7 +646,7 @@ class Database:
     # ========== Reminders Methods ==========
     def save_event(self, user_id: int, year: int, month: int, day: int,
                    time: str, event_description: str, all_day: int = 0,
-                   repeat: int = 0, reminder_offset: int = 0) -> Optional[int]:
+                   repeat: int = 0, reminder_offset: int = 0) -> Optional[int]: # Сохранение события
         if self.conn is None:
             self.conn()
         try:
@@ -659,11 +659,11 @@ class Database:
             self.conn.commit()
             return cursor.lastrowid
         except Exception as e:
-            logger.error(f"Database error saving event: {e}")
+            logger.error(f"[save_event] Ошибка при сохранении напоминания в БД: {e}")
             return None
 
     def get_all_events(self, user_id: Optional[int] = None,
-                       only_future: bool = False) -> List[Dict]:
+                       only_future: bool = False) -> List[Dict]: # Получение всех событий
         query = """
             SELECT id, user_id, year, month, day, time, 
                    event_description, all_day, repeat, reminder_offset
@@ -701,10 +701,10 @@ class Database:
                 'reminder_offset': row[9]
             } for row in cursor.fetchall()]
         except Exception as e:
-            logger.error(f"Failed to get events: {e}") or []
+            logger.error(f"[get_all_events] Ошибка при получении напоминаний: {e}") or []
             return []
 
-    def delete_event(self, event_id, user_id=None):
+    def delete_event(self, event_id, user_id=None): # Удаление события
         try:
             with self.conn:
                 cursor = self.conn.cursor()
@@ -720,12 +720,12 @@ class Database:
                 return cursor.rowcount > 0
 
         except Exception as e:
-            logger.error(f"Database error deleting event: {e}")
+            logger.error(f"[delete_event] Ошибка при удалении напоминания из БД: {e}")
             return False
 
     def update_event(self, event_id: int, year: int, month: int, day: int,
                      time: str, event_description: str, all_day: int = 0,
-                     repeat: int = 0) -> bool:
+                     repeat: int = 0) -> bool: # Обновление события
         try:
             with self.conn:
                 cursor = self.conn.cursor()
@@ -737,7 +737,7 @@ class Database:
                 ''', (year, month, day, time, event_description, all_day, repeat, event_id))
                 return cursor.rowcount > 0
         except Exception as e:
-            logger.error(f"Failed to update event {event_id}: {e}")
+            logger.error(f"[update_event] Ошибка при обновлении напоминания у пользователя: {event_id}: {e}")
             return False
 
     def get_event_datetime(self, event_id: int) -> Optional[datetime]: # Получение datetime события
@@ -758,7 +758,7 @@ class Database:
                 )
             return None
         except Exception as e:
-            logger.error(f"Failed to get datetime for event {event_id}: {e}")
+            logger.error(f"[get_event_datetime] Ошибка при получении datetime для пользователя: {event_id}: {e}")
             return None
 
     def cleanup_old_events(self, days: int = 30) -> int: # Очистка старых событий
@@ -772,7 +772,7 @@ class Database:
                 ''', (f'-{days} days',))
                 return cursor.rowcount
         except Exception as e:
-            logger.error(f"Failed to cleanup old events: {e}")
+            logger.error(f"[cleanup_old_events] Ошибка при очистке старых событий: {e}")
             return 0
 
     def update_event_description(self, event_id, new_text, user_id=None):
@@ -797,7 +797,7 @@ class Database:
             logger.error(f"Error updating event description: {e}")
             return False
 
-    def update_event_date(self, event_id, new_day, new_month, new_year=None, user_id=None):
+    def update_event_date(self, event_id, new_day, new_month, new_year=None, user_id=None): # Обновление даты события
         try:
             query = "UPDATE events SET day = ?, month = ?"
             params = [new_day, new_month]
@@ -818,10 +818,10 @@ class Database:
                 cursor.execute(query, params)
                 return cursor.rowcount > 0
         except Exception as e:
-            logger.error(f"Error updating event date: {e}")
+            logger.error(f"[update_event_date] Ошибка при обновлении даты напоминания: {e}")
             return False
 
-    def update_event_time(self, event_id, new_time, user_id=None):
+    def update_event_time(self, event_id, new_time, user_id=None): # Обновление времени события
         try:
             query = "UPDATE events SET time = ? WHERE id = ?"
             params = [new_time, event_id]
@@ -835,10 +835,10 @@ class Database:
                 cursor.execute(query, params)
                 return cursor.rowcount > 0
         except Exception as e:
-            logger.error(f"Error updating event time: {e}")
+            logger.error(f"[update_event_date] Ошибка при обновлении времени напоминания: {e}")
             return False
 
-    def update_event_repeat(self, event_id, repeat_value, user_id=None):
+    def update_event_repeat(self, event_id, repeat_value, user_id=None): # Обновление повторения события
         try:
             query = "UPDATE events SET repeat = ? WHERE id = ?"
             params = [repeat_value, event_id]
@@ -852,6 +852,6 @@ class Database:
                 cursor.execute(query, params)
                 return cursor.rowcount > 0
         except Exception as e:
-            logger.error(f"Error updating event repeat: {e}")
+            logger.error(f"[update_event_repeat] Ошибка при обновлении повторения напоминания: {e}")
             return False
 

@@ -19,9 +19,9 @@ SENT_COMPLIMENTS_FILE = BASE_DIR / "data" / "sent_compliments.txt"
 COMPLIMENTS_FILE = "data/compliments.txt"
 
 INTERVALS = [
-    (8, 10),   # С 8:00 до 10:00
-    (13, 15),  # С 13:00 до 15:00
-    (20, 22)   # С 20:00 до 22:00
+    (8, 10),
+    (13, 15),
+    (20, 22)
 ]
 
 CHECK_INTERVAL = 60
