@@ -72,7 +72,8 @@ class UserCommands:
         # ========== Compliments ==========
         @self.bot.message_handler(func=lambda msg: msg.text == '💝 Получить комплимент')
         def send_random_compliment(message):
-            compliment = self.db.get_random_compliment()
+            user_id = message.chat.id
+            compliment = self.db.get_random_compliment(user_id)
             if compliment:
                 compliment_id, text = compliment
                 self.bot.send_message(message.chat.id, f"✨ {text}")

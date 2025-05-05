@@ -106,7 +106,7 @@ class Buttons_menu:
             for year in range(current_year, current_year + years_range)
         ]
         markup.add(*buttons)
-        markup.add(types.InlineKeyboardButton("🔙 Назад", callback_data="main_menu"))
+        markup.add(types.InlineKeyboardButton("🔙 Назад", callback_data="calendar_menu"))
         return markup
 
     @staticmethod
@@ -184,6 +184,31 @@ class Buttons_menu:
             types.InlineKeyboardButton("За 1 день", callback_data="reminder_1440"),
             types.InlineKeyboardButton("Не напоминать", callback_data="reminder_none")
         )
+        return markup
+
+    @staticmethod
+    def get_delete_menu(events, selected_ids=None): #Формирование клавиатуры для удаления событий с отображением выбранных
+        if selected_ids is None:
+            selected_ids = set()
+
+        markup = types.InlineKeyboardMarkup(row_width=1)
+
+        for event in events:
+            event_id = event["id"]
+            title = event["event_description"] if event["event_description"] else "(без названия)"
+            is_selected = event_id in selected_ids
+
+            prefix = "✅" if is_selected else "🔘"
+            button_text = f"{prefix} {title}"
+            callback_data = f"del_toggle_{event_id}"
+
+            markup.add(types.InlineKeyboardButton(button_text, callback_data=callback_data))
+
+        markup.add(
+            types.InlineKeyboardButton("✅ Удалить", callback_data="del_confirm"),
+            types.InlineKeyboardButton("❌ Отмена", callback_data="del_cancel")
+        )
+
         return markup
 
 
