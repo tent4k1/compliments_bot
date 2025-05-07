@@ -1,5 +1,5 @@
 from telebot import TeleBot
-from decorators import admin_only, log_command
+from utils.decorators import admin_only, log_command
 from database import Database
 
 def setup_admin_commands(bot: TeleBot, db: Database):

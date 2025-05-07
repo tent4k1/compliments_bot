@@ -4,7 +4,7 @@ import logging
 import json
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, Tuple, List, Dict, Set
+from typing import Optional, Tuple, List, Dict, Set, Any
 from pydantic.v1.utils import sequence_like
 
 logging.basicConfig(
@@ -43,6 +43,7 @@ class Database:
             detect_types=sqlite3.PARSE_DECLTYPES,
             check_same_thread=False
         )
+        self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA journal_mode=WAL")
         self.conn.execute("PRAGMA foreign_keys=ON")
 
@@ -124,6 +125,50 @@ class Database:
                 all_day INTEGER DEFAULT 0,
                 repeat INTEGER DEFAULT 0,
                 reminder_offset INTEGER DEFAULT 0
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS partners (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                requester_id INTEGER,
+                partner_id INTEGER,
+                confirmed INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (requester_id) REFERENCES users(user_id),
+                FOREIGN KEY (partner_id) REFERENCES users(user_id)
+            )
+            """,
+            """
+           CREATE TABLE IF NOT EXISTS lists (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                owner_id INTEGER,
+                partner_id INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (owner_id) REFERENCES users(user_id),
+                FOREIGN KEY (partner_id) REFERENCES users(user_id)
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS list_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                list_id INTEGER,
+                description TEXT NOT NULL,
+                image_path TEXT,
+                due_date TEXT,
+                created_by INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (list_id) REFERENCES lists(id),
+                FOREIGN KEY (created_by) REFERENCES users(user_id)
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS notifications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                message TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                read INTEGER DEFAULT 0
             )
             """
         ]
@@ -288,6 +333,21 @@ class Database:
         except Exception as e:
             logger.error(f"[get_subscribed_users] Ошибка при получении подписчиков: {e}")
             return set()
+
+
+    def get_user_id_by_username(self, username: str) -> int | None:
+        try:
+            with self.conn:
+                cursor = self.conn.cursor()
+                cursor.execute(
+                    "SELECT user_id FROM users WHERE username = ?", (username,)
+                )
+                if result := cursor.fetchone():
+                    return result[0]
+                return None
+        except sqlite3.Error as e:
+            logger.error(f"[get_user_id_by_username] Ошибка при получении ID по username: {e}")
+            return None
 
     # ========== Compliment Methods ==========
     def add_compliment(self, text: str) -> bool: # Добавление нового комплимента
@@ -855,3 +915,229 @@ class Database:
             logger.error(f"[update_event_repeat] Ошибка при обновлении повторения напоминания: {e}")
             return False
 
+    # ========== Partner Methods ==========
+    def send_partner_request(self, requester_id: int, partner_id: int) -> bool: # Отправка запроса на партнерство
+        try:
+            with self.conn:
+                self.conn.execute(
+                    """
+                    INSERT INTO partners (requester_id, partner_id, confirmed)
+                    VALUES (?, ?, 0)
+                    """,
+                    (requester_id, partner_id)
+                )
+                return True
+        except sqlite3.Error as e:
+            logger.error(f"[send_partner_request] Ошибка при отправке запроса партнеру: {e}")
+            return False
+
+    def confirm_partner_request(self, requester_id: int, partner_id: int) -> bool: # Подтверждение запроса на партнерство
+        try:
+            with self.conn:
+                cursor = self.conn.execute(
+                    """
+                    UPDATE partners
+                    SET confirmed = 1
+                    WHERE requester_id = ? AND partner_id = ?
+                    """,
+                    (requester_id, partner_id)
+                )
+                return cursor.rowcount > 0
+        except sqlite3.Error as e:
+            logger.error(f"[confirm_partner] Ошибка при подтвержждении партнера в БД: {e}")
+            return False
+
+    def get_partner(self, user_id: int) -> Optional[int]: # Получение партнера из БД
+        try:
+            with self.conn:
+                cursor = self.conn.execute(
+                    """
+                    SELECT requester_id FROM partners WHERE partner_id = ? AND confirmed = 1
+                    UNION
+                    SELECT partner_id FROM partners WHERE requester_id = ? AND confirmed = 1
+                    """,
+                    (user_id, user_id)
+                )
+                if result := cursor.fetchone():
+                    return result[0]
+                return None
+        except sqlite3.Error as e:
+            logger.error(f"[get_partner] Ошибка при получении партнера из БД: {e}")
+            return None
+
+    def delete_partner(self, user_id): # Удаление партнера
+        try:
+            with self.conn:
+                cursor = self.conn.execute(
+                    "SELECT partner_id FROM partners WHERE requester_id = ? OR partner_id = ?",
+                    (user_id, user_id)
+                )
+                if partner := cursor.fetchone():
+                    partner_id = partner[0]
+                    self.conn.execute(
+                        "DELETE FROM partners WHERE requester_id = ? OR partner_id = ?",
+                        (user_id, user_id)
+                    )
+                    return True, partner_id
+                return False, None
+        except sqlite3.Error as e:
+            logging.error(f"[delete_partner] Ошибка при удалении партнера из БД: {e}")
+            return False, None
+
+    def has_pending_request(self, requester_id: int, partner_id: int) -> bool: # Проверка заявки на партнерство
+        try:
+            with self.conn:
+                cursor = self.conn.execute(
+                    """
+                    SELECT 1 FROM partners
+                    WHERE requester_id = ? AND partner_id = ? AND confirmed = 0
+                    """,
+                    (requester_id, partner_id)
+                )
+                return cursor.fetchone() is not None
+        except sqlite3.Error as e:
+            logger.error(f"[has_pending_request] Ошибка при проверке заявки на партнерство: {e}")
+            return False
+
+    # ========== List Methods ==========
+    def create_list(self, name: str, owner_id: int, partner_id: int) -> Optional[int]: # Создание списка
+        try:
+            with self.conn:
+                cursor = self.conn.execute(
+                    """
+                    INSERT INTO lists (name, owner_id, partner_id)
+                    VALUES (?, ?, ?)
+                    """,
+                    (name, owner_id, partner_id)
+                )
+                return cursor.lastrowid
+        except sqlite3.Error as e:
+            logger.error(f"[create_list] Ошибка при создании списка в БД: {e}")
+            return None
+
+    def add_list_item(self, list_id: int, description: str, created_by: int,
+            image_path: Optional[str] = None,
+            due_date: Optional[str] = None) -> bool: # Добавление элементов в список
+        try:
+            with self.conn:
+                self.conn.execute(
+                    """
+                    INSERT INTO list_items (list_id, description, image_path, due_date, created_by)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (list_id, description, image_path, due_date, created_by)
+                )
+                return True
+        except sqlite3.Error as e:
+            logger.error(f"[add_list_item] Ошибка при добавлении элемента списка в БД: {e}")
+            return False
+
+    def get_user_lists(self, user_id: int) -> List[Dict[str, Any]]: # Вывод списков пользователя
+        try:
+            with self.conn:
+                cursor = self.conn.execute(
+                    """
+                    SELECT * FROM lists
+                    WHERE owner_id = ? OR partner_id = ?
+                    """,
+                    (user_id, user_id)
+                )
+                return [dict(row) for row in cursor.fetchall()]
+        except sqlite3.Error as e:
+            logger.error(f"[get_lists_by_user] Ошибка при получении списков из БД: {e}")
+            return []
+
+    def get_list_items(self, list_id: int) -> List[Dict[str, Any]]: # Вывод элементов списка
+        try:
+            with self.conn:
+                cursor = self.conn.execute(
+                    """
+                    SELECT * FROM list_items
+                    WHERE list_id = ?
+                    ORDER BY created_at ASC
+                    """,
+                    (list_id,)
+                )
+                return [dict(row) for row in cursor.fetchall()]
+        except sqlite3.Error as e:
+            logger.error(f"[get_list_items] Ошибка при получении элементов списка из БД: {e}")
+            return []
+
+    def delete_list(self, list_id): # Удаление списка пользователя
+        try:
+            with self.conn:
+                self.conn.execute("DELETE FROM list_items WHERE list_id = ?", (list_id,))
+                self.conn.execute("DELETE FROM lists WHERE id = ?", (list_id,))
+                return True
+        except sqlite3.Error as e:
+            logger.error(f"[delete_list] Ошибка при удалении списка из БД: {e}")
+            return False
+
+    def delete_list_item(self, item_id: int) -> bool: # Удаление элемента списка
+        try:
+            with self.conn:
+                self.conn.execute("DELETE FROM list_items WHERE id = ?", (item_id,))
+                return True
+        except sqlite3.Error as e:
+            logger.error(f"[delete_list_item] Ошибка при удалении элемента списка: {e}")
+            return False
+
+    def update_listitem_description(self, item_id, new_text, list_id=None): # Обновление
+        try:
+            query = "UPDATE list_items SET description = ?"
+            params = [new_text]
+
+            query += " WHERE id = ?"
+            params.append(item_id)
+
+            if list_id is not None:
+                query += " AND list_id = ?"
+                params.append(int(list_id))
+
+            with self.conn:
+                cursor = self.conn.cursor()
+                cursor.execute(query, params)
+                return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"[update_listitem_description] Ошибка при обновлении описания элемента списка: {e}")
+            return False
+
+    def update_item_date(self, new_date, item_id, list_id=None):  # Обновление даты события
+        try:
+            query = "UPDATE list_items SET due_date = ?"
+            params = [new_date]
+
+            query += " WHERE id = ?"
+            params.append(item_id)
+
+            if list_id is not None:
+                query += " AND list_id = ?"
+                params.append(int(list_id))
+
+            with self.conn:
+                cursor = self.conn.cursor()
+                cursor.execute(query, params)
+                return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"[update_item_date] Ошибка при обновлении даты элемента списка: {e}")
+            return False
+
+    def update_item_photo(self, item_id, new_image_path, list_id=None):
+        try:
+            query = "UPDATE list_items SET image_path = ?"
+            params = [new_image_path]
+
+            query += " WHERE id = ?"
+            params.append(item_id)
+
+            if list_id is not None:
+                query += " AND list_id = ?"
+                params.append(int(list_id))
+
+            with self.conn:
+                cursor = self.conn.cursor()
+                cursor.execute(query, params)
+                return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"[update_item_photo] Ошибка при обновлении фото элемента списка: {e}")
+            return False

@@ -6,11 +6,12 @@ from threading import Thread
 from sched import scheduler
 from config import TOKEN
 from database import Database
-from utils.reminders_handlers import Reminders_Handlers
 from utils.scheduler import ComplimentScheduler
-from utils.weather_handlers import Weather_Handlers
+from handlers.reminders_handlers import Reminders_Handlers
+from handlers.weather_handlers import Weather_Handlers
 from handlers.user_commands import UserCommands
 from handlers.admin_commands import setup_admin_commands
+from handlers.list_handlers import List_Handlers
 from keyboards.main_menu import Buttons_menu
 
 logging.basicConfig(
@@ -53,8 +54,9 @@ def main():
         bm = Buttons_menu()
         wh = Weather_Handlers()
         scheduler = ComplimentScheduler(bot, db)
+        lh = List_Handlers(bot, db, bm)
         rh = Reminders_Handlers(bot, db, bm, scheduler)
-        uc = UserCommands(bot, db, bm, wh, rh, scheduler)
+        uc = UserCommands(bot, db, bm, wh, rh, lh, scheduler)
 
         restored_users = 0
         for user_id in db.get_subscribed_users():

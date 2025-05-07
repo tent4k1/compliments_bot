@@ -11,7 +11,7 @@ from threading import Thread
 from typing import Dict, Optional, Tuple
 from config import WEATHER, WEATHER, DEFAULT_CITY
 from database import Database
-from utils.weather_handlers import Weather_Handlers
+from handlers.weather_handlers import Weather_Handlers
 
 
 class ComplimentScheduler:

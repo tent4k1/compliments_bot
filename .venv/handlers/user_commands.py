@@ -5,17 +5,18 @@ import calendar
 
 from datetime import datetime
 from telebot import TeleBot, types
-from decorators import log_command
+from utils.decorators import log_command
 from database import Database
 from config import WEATHER, DEFAULT_CITY, TOKEN
 
 class UserCommands:
-    def __init__(self, bot, db, bm, wh, rh, scheduler):
+    def __init__(self, bot, db, bm, wh, rh, lh, scheduler):
         self.bot = bot
         self.db = db
         self.bm = bm
         self.wh = wh
         self.rh = rh
+        self.lh = lh
         self.scheduler = scheduler
         self.logger = logging.getLogger(__name__)
         self.user_event_data = {}
@@ -229,3 +230,66 @@ class UserCommands:
                 self.logger.error(f"Error in handle_view_events: {e}")
                 if "chat not found" not in str(e):
                     self.bot.send_message(message.chat.id, "❌ Ошибка при загрузке событий")
+
+        # ========== Lists ==========
+        @self.bot.message_handler(func=lambda message: message.text == "📝 Списки")
+        def handle_list_options(message):
+            try:
+                self.bot.send_message(
+                    message.chat.id,
+                    "⌨ Выбор города:",
+                    reply_markup=self.bm.get_lists_menu()
+                )
+            except Exception as e:
+                self.logger.warning(f"[handle_list_options] Ошибка при вызове клавиатуры: {e}")
+
+        @self.bot.message_handler(func=lambda message: message.text == "👥 Мой партнёр")
+        def handle_my_partner_button(message):
+            try:
+                user_id = message.from_user.id
+                partner_id = self.db.get_partner(user_id)
+                if partner_id:
+                    partner = self.bot.get_chat(partner_id)
+                    markup = types.InlineKeyboardMarkup()
+                    markup.add(types.InlineKeyboardButton("❌ Удалить партнёра", callback_data="delete_partner_confirm"))
+
+                    self.bot.send_message(
+                        user_id,
+                        f"🤝 Ваш партнёр: @{partner.username or partner_id}",
+                        reply_markup=markup
+                    )
+                else:
+                    self.bot.send_message(user_id, "❗ У вас пока нет подтверждённого партнёра.")
+            except Exception as e:
+                self.logger.warning(f"[handle_my_partner_button] Ошибка при получении партнера: {e}")
+
+        @self.bot.message_handler(func=lambda message: message.text == "➕ Добавить партнёра")
+        def handle_add_partner_button(message):
+            self.bot.send_message(message.chat.id, "Введите @username или ID партнёра:")
+            self.bot.register_next_step_handler(message, self.lh.process_partner_input)
+
+        @self.bot.message_handler(func=lambda message: message.text == "📝 Добавить список")
+        def handle_add_list(message):
+            self.bot.send_message(message.chat.id, "Введите название списка:")
+            self.bot.register_next_step_handler(message, self.lh.process_list_name)
+
+        @self.bot.message_handler(func=lambda message: message.text == "📋 Мои списки")
+        def handle_my_lists(message):
+            try:
+                user_id = message.from_user.id
+                lists = self.db.get_user_lists(user_id)
+            except Exception as e:
+                self.logger.error(f"[handle_my_lists] Ошибка при получении данных: {e}")
+
+            if not lists:
+                self.bot.send_message(user_id, "❗ У вас пока нет списков.")
+                return
+
+            try:
+                markup = types.InlineKeyboardMarkup()
+                for lst in lists:
+                    markup.add(types.InlineKeyboardButton(lst['name'], callback_data=f"view_list_{lst['id']}"))
+
+                self.bot.send_message(user_id, "📋 Ваши списки:", reply_markup=markup)
+            except Exception as e:
+                self.logger.error(f"[handle_my_lists] Ошибка при выводе списков: {e}")

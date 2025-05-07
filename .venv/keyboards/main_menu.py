@@ -19,6 +19,9 @@ class Buttons_menu:
             KeyboardButton('🌡 Погода'),
             KeyboardButton("📅 Календарь"),
         )
+        markup.add(
+            KeyboardButton('📝 Списки')
+        )
 
         return markup
 
@@ -207,6 +210,45 @@ class Buttons_menu:
         markup.add(
             types.InlineKeyboardButton("✅ Удалить", callback_data="del_confirm"),
             types.InlineKeyboardButton("❌ Отмена", callback_data="del_cancel")
+        )
+
+        return markup
+
+    @staticmethod
+    def get_lists_menu():
+        markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
+        btn_mypart = types.KeyboardButton('👥 Мой партнёр')
+        btn_addpart = types.KeyboardButton('➕ Добавить партнёра')
+        btn_mylists = types.KeyboardButton('📋 Мои списки')
+        btn_addlist = types.KeyboardButton('📝 Добавить список')
+        btn_back = types.KeyboardButton('🔙 Назад')
+
+        markup.add(btn_mypart, btn_addpart, btn_mylists, btn_addlist, btn_back)
+        return markup
+
+    @staticmethod
+    def create_events_markup(pages: list, current_page: int) -> types.InlineKeyboardMarkup: # Кнопки управления
+        markup = types.InlineKeyboardMarkup()
+
+        # Кнопки пагинации
+        if len(pages) > 1:
+            nav_buttons = []
+            if current_page > 0:
+                nav_buttons.append(types.InlineKeyboardButton("◀️", callback_data=f"page_{current_page - 1}"))
+
+            nav_buttons.append(types.InlineKeyboardButton(
+                f"{current_page + 1}/{len(pages)}",
+                callback_data="current"
+            ))
+
+            if current_page < len(pages) - 1:
+                nav_buttons.append(types.InlineKeyboardButton("▶️", callback_data=f"page_{current_page + 1}"))
+
+            markup.row(*nav_buttons)
+
+        markup.row(
+            types.InlineKeyboardButton("✏️ Редактировать", callback_data="edit_mode"),
+            types.InlineKeyboardButton("❌ Удалить", callback_data="delete_mode")
         )
 
         return markup
