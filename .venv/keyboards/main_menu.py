@@ -6,6 +6,7 @@ from datetime import datetime
 class Buttons_menu:
     @staticmethod
     def main_menu():
+        """Главное меню бота"""
         markup = ReplyKeyboardMarkup(resize_keyboard=True)
         markup.add(
             KeyboardButton('💝 Получить комплимент'),
@@ -27,6 +28,7 @@ class Buttons_menu:
 
     @staticmethod
     def admin_menu():
+        """Меню администратора"""
         markup = ReplyKeyboardMarkup(resize_keyboard=True)
         markup.add(
             KeyboardButton('📝 Добавить комплимент'),
@@ -34,7 +36,8 @@ class Buttons_menu:
         )
         return markup
 
-    def get_repeat_menu(selected_option=None): # Создает меню выбора повторения события
+    def get_repeat_menu(selected_option=None):
+        """Создает меню выбора повторения события"""
         markup = types.InlineKeyboardMarkup(row_width=2)
 
         daily_btn = types.InlineKeyboardButton(
@@ -51,6 +54,7 @@ class Buttons_menu:
         return markup
 
     def get_time_menu(selected_time=None, include_back=True): # Создает меню выбора времени
+        """Кнопки выбора времени события"""
         markup = types.InlineKeyboardMarkup(row_width=3)
 
         times = ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00']
@@ -84,7 +88,8 @@ class Buttons_menu:
         return markup
 
     @staticmethod
-    def get_calendar_menu(include_back=True): # Создает главное меню календаря
+    def get_calendar_menu(include_back=True):
+        """Кнопки управления главным меню календаря"""
         markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
         buttons = [
             types.KeyboardButton("📆 Добавить событие"),
@@ -99,6 +104,7 @@ class Buttons_menu:
 
     @staticmethod
     def get_year_menu(current_year=None, years_range=5): # Создает меню выбора года
+        """Кнопки выбора года при создании напоминания"""
         markup = types.InlineKeyboardMarkup(row_width=3)
         current_year = current_year or datetime.now().year
         buttons = [
@@ -113,7 +119,8 @@ class Buttons_menu:
         return markup
 
     @staticmethod
-    def get_month_menu(selected_month=None): # Создает меню выбора месяца с возможностью выделения выбранного
+    def get_month_menu(selected_month=None):
+        """Создает меню выбора месяца с возможностью выделения выбранного"""
         markup = types.InlineKeyboardMarkup(row_width=4)
         months = [
             ('Январь', 1), ('Февраль', 2), ('Март', 3),
@@ -135,7 +142,8 @@ class Buttons_menu:
         return markup
 
     @staticmethod
-    def get_day_menu(month: int, year: int, selected_day=None): # Создает меню выбора дня с учетом количества дней в месяце
+    def get_day_menu(month: int, year: int, selected_day=None):
+        """Создает меню выбора дня с учетом количества дней в месяце"""
         markup = types.InlineKeyboardMarkup(row_width=7)
         num_days = calendar.monthrange(year, month)[1]
 
@@ -153,6 +161,7 @@ class Buttons_menu:
 
     @staticmethod
     def get_weather_keyboard():
+        """Кнопки выбора города для получения погоды"""
         markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
         btn_moscow = types.KeyboardButton('Москва')
         btn_podolsk = types.KeyboardButton('Подольск')
@@ -167,6 +176,7 @@ class Buttons_menu:
 
     @staticmethod
     def get_subscribe_keyboard():
+        """Кнопки управления подпиской"""
         markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
         btn_check = types.KeyboardButton('❓ Проверить подписку')
         btn_subs = types.KeyboardButton('✅ Подписаться')
@@ -177,6 +187,7 @@ class Buttons_menu:
 
     @staticmethod
     def get_reminder_offset_menu():
+        """Кнопки выбора 'За сколько напомнить?' события"""
         markup = types.InlineKeyboardMarkup(row_width=2)
         markup.add(
             types.InlineKeyboardButton("За 15 минут", callback_data="reminder_15"),
@@ -190,7 +201,8 @@ class Buttons_menu:
         return markup
 
     @staticmethod
-    def get_delete_menu(events, selected_ids=None): #Формирование клавиатуры для удаления событий с отображением выбранных
+    def get_delete_menu(events, selected_ids=None):
+        """Формирование клавиатуры для удаления событий с отображением выбранных"""
         if selected_ids is None:
             selected_ids = set()
 
@@ -216,6 +228,7 @@ class Buttons_menu:
 
     @staticmethod
     def get_lists_menu():
+        """Кнопки управления списками и партнерами"""
         markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
         btn_mypart = types.KeyboardButton('👥 Мой партнёр')
         btn_addpart = types.KeyboardButton('➕ Добавить партнёра')
@@ -227,10 +240,10 @@ class Buttons_menu:
         return markup
 
     @staticmethod
-    def create_events_markup(pages: list, current_page: int) -> types.InlineKeyboardMarkup: # Кнопки управления
+    def create_events_markup(pages: list, current_page: int) -> types.InlineKeyboardMarkup:
+        """Кнопки управления календарем"""
         markup = types.InlineKeyboardMarkup()
 
-        # Кнопки пагинации
         if len(pages) > 1:
             nav_buttons = []
             if current_page > 0:

@@ -5,7 +5,8 @@ from datetime import datetime
 from config import WEATHER
 
 class Weather_Handlers:
-    def get_daily_forecast(self, city_name: str) -> str: # Получение и форматирование прогноза погоды
+    def get_daily_forecast(self, city_name: str) -> str:
+        """Получение и форматирование прогноза погоды"""
         base_url = "http://api.openweathermap.org/data/2.5/forecast"
         params = {
             'q': city_name,
@@ -20,7 +21,8 @@ class Weather_Handlers:
         return self.format_forecast(response.json())
 
     @staticmethod
-    def format_forecast(data: dict) -> str: # Форматирование данных прогноза
+    def format_forecast(data: dict) -> str:
+        """Форматирование данных прогноза"""
         try:
             forecast_lines = []
             daytime_temps = []
@@ -50,6 +52,7 @@ class Weather_Handlers:
             raise Exception("Некорректные данные о погоде")
 
     def format_weather_response(self, data: dict) -> str:
+        """Получение и форматирование прогноза погоды"""
         try:
             weather = data['weather'][0]
             weather_id = weather.get('id')
@@ -76,7 +79,8 @@ class Weather_Handlers:
         )
 
     @staticmethod
-    def get_weather_icon(weather_id: int) -> str: # Возврат иконки для типа погоды
+    def get_weather_icon(weather_id: int) -> str:
+        """Возврат иконки для типа погоды"""
         if 200 <= weather_id < 300:
             return '⛈️'  # Гроза
         elif 300 <= weather_id < 400:
@@ -95,7 +99,8 @@ class Weather_Handlers:
             return '🌈'
 
     @staticmethod
-    def get_weather_data(city_name: str) -> dict: # Отправка запроса погоды на сайт
+    def get_weather_data(city_name: str) -> dict:
+        """Отправка запроса погоды на сайт"""
         base_url = "http://api.openweathermap.org/data/2.5/weather"
         params = {
             'q': city_name,

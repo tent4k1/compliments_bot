@@ -25,7 +25,8 @@ class Database:
     _lock = threading.Lock()
     DB_VERSION = 3
 
-    def __new__(cls): # Реализация Singleton для единственного подключения к БД
+    def __new__(cls):
+        """Реализация Singleton для единственного подключения к БД"""
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
@@ -33,7 +34,8 @@ class Database:
                     cls._instance._initialize_db()
         return cls._instance
 
-    def _initialize_db(self): # Инициализация базы данных
+    def _initialize_db(self):
+        """Инициализация базы данных"""
         self.db_path = Path('data') / 'bot_database.db'
         self._ensure_data_dir()
 
@@ -52,14 +54,16 @@ class Database:
 
         logger.info(f"БД инициалиирована в: {self.db_path}")
 
-    def _ensure_data_dir(self): # Создание папки data если не существует
+    def _ensure_data_dir(self):
+        """Создание папки data если не существует"""
         try:
             Path('data').mkdir(exist_ok=True)
         except Exception as e:
             logger.error(f"[_ensure_data_dir] Ошибка при создании директории: {e}")
             raise
 
-    def _create_tables(self): # Создание таблиц базы данных с актуальной схемой
+    def _create_tables(self):
+        """Создание таблиц базы данных с актуальной схемой"""
         tables = [
             """
             CREATE TABLE IF NOT EXISTS users (
@@ -184,6 +188,7 @@ class Database:
             raise
 
     def _check_migrations(self):
+        """Проверка миграций БД"""
         try:
             cursor = self.conn.cursor()
 
@@ -214,7 +219,8 @@ class Database:
             logger.error(f"[_check_migrations] Ошибка при миграции таблицы: {e}")
             raise
 
-    def _migrate_v1(self): # Миграция на версию 1: добавление language_code и last_active
+    def _migrate_v1(self):
+        """Миграция на версию 1: добавление language_code и last_active"""
         with self.conn:
             cursor = self.conn.cursor()
 
@@ -229,7 +235,8 @@ class Database:
                 self.conn.execute("ALTER TABLE users ADD COLUMN last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
                 logger.info("Добавлена last_active колонка для users таблицы")
 
-    def _migrate_v2(self): # Миграция на версию 2: добавление таблицы db_meta
+    def _migrate_v2(self):
+        """Миграция на версию 2: добавление таблицы db_meta"""
         with self.conn:
             cursor = self.conn.cursor()
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='db_meta'")
@@ -243,6 +250,7 @@ class Database:
                 logger.info("Добавлена db_meta таблица")
 
     def _migrate_v3(self):
+        """Миграция на версию 3: доюавление столбца reminder_offset в таблицу events"""
         with self.conn:
             cursor = self.conn.cursor()
             cursor.execute("PRAGMA table_info(events)")
@@ -250,10 +258,71 @@ class Database:
 
             if 'reminder_offset' not in columns:
                 self.conn.execute("ALTER TABLE events ADD COLUMN reminder_offset INTEGER DEFAULT 0")
-                logger.info("Добавлен столбец reminder_offset в таблицу events ")
+                logger.info("Добавлен столбец reminder_offset в таблицу events")
+
+    def _migrate_v4(self):
+        """Миграция на версию 4: добавление таблиц partners, lists, list_items, notifications"""
+        with self.conn:
+            cursor = self.conn.cursor()
+
+            def table_exists(name):
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (name,))
+                return cursor.fetchone() is not None
+
+            if not table_exists("partners"):
+                self.conn.execute("""
+                CREATE TABLE partners (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    requester_id INTEGER NOT NULL,
+                    partner_id INTEGER NOT NULL,
+                    confirmed BOOLEAN DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+                """)
+                logger.info("Создана таблица partners")
+
+            if not table_exists("lists"):
+                self.conn.execute("""
+                CREATE TABLE lists (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    owner_id INTEGER NOT NULL,
+                    partner_id INTEGER,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+                """)
+                logger.info("Создана таблица lists")
+
+            if not table_exists("list_items"):
+                self.conn.execute("""
+                CREATE TABLE list_items (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    list_id INTEGER NOT NULL,
+                    description TEXT NOT NULL,
+                    image_path TEXT,
+                    due_date TEXT,
+                    created_by INTEGER,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+                """)
+                logger.info("Создана таблица list_items")
+
+            if not table_exists("notifications"):
+                self.conn.execute("""
+                CREATE TABLE notifications (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    message TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    read BOOLEAN DEFAULT 0
+                )
+                """)
+                logger.info("Создана таблица notifications")
+
 
     # ========== User Methods ==========
-    def user_exists(self, user_id: int) -> bool: # Проверка существования пользователя
+    def user_exists(self, user_id: int) -> bool:
+        """Проверка существования пользователя"""
         query = "SELECT 1 FROM users WHERE user_id = ? LIMIT 1"
         try:
             cursor = self.conn.cursor()
@@ -264,7 +333,8 @@ class Database:
             return False
 
     def add_user(self, user_id: int, username: str = None, first_name: str = None, last_name: str = None,
-                 language_code: str = None) -> bool: # Добавление/обновление пользователя
+                 language_code: str = None) -> bool:
+        """Добавление/обновление пользователя"""
         query = """
         INSERT OR REPLACE INTO users 
         (user_id, username, first_name, last_name, language_code, last_active)
@@ -284,7 +354,8 @@ class Database:
             logger.error(f"[add_user] Ошибка при добавлении пользователя {user_id}: {e}")
             return False
 
-    def set_subscription(self, user_id: int, status: bool) -> bool: # Установка статуса подписки
+    def set_subscription(self, user_id: int, status: bool) -> bool:
+        """Установка статуса подписки для пользователя"""
         query = """
         UPDATE users 
         SET is_subscribed = ?, last_active = ?
@@ -299,7 +370,8 @@ class Database:
             logger.error(f"[set_subscription] Ошибка при установке статуса подписки пользователя {user_id}: {e}")
             return False
 
-    def get_user_info(self, user_id: int) -> Optional[Tuple]: # Получение информации о пользователе
+    def get_user_info(self, user_id: int) -> Optional[Tuple]:
+        """Получение информации о пользователе"""
         query = """
         SELECT username, first_name, last_name, created_at, last_active, is_subscribed 
         FROM users 
@@ -313,7 +385,8 @@ class Database:
             logger.error(f"[get_user_info] Ошибка при получении информации о пользователе {user_id}: {e}")
             return None
 
-    def is_user_subscribed(self, user_id: int) -> Optional[bool]: # Проверка статуса подписки
+    def is_user_subscribed(self, user_id: int) -> Optional[bool]:
+        """Проверка статуса подписки пользователя"""
         query = "SELECT is_subscribed FROM users WHERE user_id = ?"
         try:
             cursor = self.conn.cursor()
@@ -324,7 +397,8 @@ class Database:
             logger.error(f"[is_user_subscribed] Ошибка при получении статуса подписки {user_id}: {e}")
             return None
 
-    def get_subscribed_users(self) -> Set[int]: # Получение ID всех подписанных пользователей
+    def get_subscribed_users(self) -> Set[int]:
+        """Получение ID всех подписанных пользователей"""
         query = "SELECT user_id FROM users WHERE is_subscribed = TRUE"
         try:
             cursor = self.conn.cursor()
@@ -336,6 +410,7 @@ class Database:
 
 
     def get_user_id_by_username(self, username: str) -> int | None:
+        """Получение ID пользователя по его username"""
         try:
             with self.conn:
                 cursor = self.conn.cursor()
@@ -349,8 +424,24 @@ class Database:
             logger.error(f"[get_user_id_by_username] Ошибка при получении ID по username: {e}")
             return None
 
+    def get_username_by_user_id(self, user_id):
+        """Получение username пользователя по его ID"""
+        try:
+            with self.conn:
+                cursor = self.conn.cursor()
+                cursor.execute(
+                    "SELECT username FROM users WHERE user_id = ?", (user_id,)
+                )
+                if result := cursor.fetchone():
+                    return result[0]
+                return None
+        except sqlite3.Error as e:
+            logger.error(f"[get_username_by_user_id] Ошибка при получении username по ID: {e}")
+            return None
+
     # ========== Compliment Methods ==========
-    def add_compliment(self, text: str) -> bool: # Добавление нового комплимента
+    def add_compliment(self, text: str) -> bool:
+        """Добавление нового комплимента"""
         query = "INSERT INTO compliments (text) VALUES (?)"
         try:
             with self.conn:
@@ -375,9 +466,12 @@ class Database:
             ORDER BY RANDOM()
             LIMIT 1
             """
-            cursor = self.conn.cursor()
-            cursor.execute(query, (user_id,))
-            return cursor.fetchone()
+            try:
+                cursor = self.conn.cursor()
+                cursor.execute(query, (user_id,))
+                return cursor.fetchone()
+            except sqlite3.Error as e:
+                logger.error(f"[_fetch_available_compliment] Ошибка при выполнении запроса: {e}")
 
         try:
             compliment = _fetch_available_compliment()
@@ -394,7 +488,8 @@ class Database:
             logger.error(f"[get_random_compliment] Ошибка при получении случайного комплимента для: {user_id}: {e}")
             return None
 
-    def record_sent_compliment(self, user_id: int, compliment_id: int) -> bool: # Запись отправленного комплимента
+    def record_sent_compliment(self, user_id: int, compliment_id: int) -> bool:
+        """Запись отправленного комплимента в отдельную таблицу"""
         query = """
         INSERT INTO sent_compliments (user_id, compliment_id)
         VALUES (?, ?)
@@ -409,6 +504,7 @@ class Database:
             return False
 
     def reset_user_compliments(self, user_id: int) -> None:
+        """Сброс истории комплиментов для пользователя"""
         query = "DELETE FROM sent_compliments WHERE user_id = ?"
         try:
             with self.conn:
@@ -418,7 +514,8 @@ class Database:
             logger.error(f"[reset_user_compliments] Ошибка при сбросе комплиментов для пользователя {user_id}: {e}")
 
     # ========== Wishlist Methods ==========
-    def add_wish(self, user_id: int, wish_text: str) -> bool: # Добавление желания в список
+    def add_wish(self, user_id: int, wish_text: str) -> bool:
+        """Добавление желания в вишлист"""
         try:
             with self.conn:
                 self.conn.execute(
@@ -430,7 +527,8 @@ class Database:
             logger.error(f"[add_wish] Ошибка при добавлении желания: {e}")
             return False
 
-    def get_user_wishes(self, user_id: int) -> list: # Получение желаний пользователя
+    def get_user_wishes(self, user_id: int) -> list:
+        """Получение желаний текущего пользователя"""
         try:
             cursor = self.conn.cursor()
             cursor.execute(
@@ -442,7 +540,8 @@ class Database:
             logger.error(f"[get_user_wishes] Ошибка при получении своих желаний: {e}")
             return []
 
-    def get_partner_wishes(self, user_id: int) -> list: # Получение желаний партнера
+    def get_partner_wishes(self, user_id: int) -> list:
+        """Получение желаний партнера"""
         from config import ADMIN_ID, MIUS_ID
         partner_id = MIUS_ID if user_id == ADMIN_ID else ADMIN_ID
 
@@ -459,7 +558,8 @@ class Database:
             logger.error(f"[get_partner_wishes] Ошибка при получении желаний партнера: {e}")
             return []
 
-    def mark_fulfilled(self, wish_id: int) -> bool: # Пометить желание как исполненное
+    def mark_fulfilled(self, wish_id: int) -> bool:
+        """Пометить желание как исполненное"""
         try:
             with self.conn:
                 self.conn.execute(
@@ -471,7 +571,8 @@ class Database:
             logger.error(f"[mark_fulfilled] Ошибка при отметке желания исполненным: {e}")
             return False
 
-    def delete_wish(self, wish_id: int, user_id: int) -> bool: # Удаление желания с проверкой владельца
+    def delete_wish(self, wish_id: int, user_id: int) -> bool:
+        """Удаление желания с проверкой владельца"""
         try:
             with self.conn:
                 cursor = self.conn.cursor()
@@ -490,7 +591,8 @@ class Database:
             return False
 
     # ========== Stats Methods ==========
-    def get_stats(self) -> Dict: # Основная статистика бота
+    def get_stats(self) -> Dict:
+        """Основная статистика бота для пользователей"""
         try:
             with self.conn:
                 cursor = self.conn.cursor()
@@ -525,50 +627,8 @@ class Database:
                 'sent_today': 0
             }
 
-    def get_detailed_stats(self) -> Dict: # Подробная статистика для админа
-        with self.conn:
-            cursor = self.conn.cursor()
-
-            cursor.execute("SELECT COUNT(*) FROM users")
-            total_users = cursor.fetchone()[0]
-
-            cursor.execute("SELECT COUNT(*) FROM users WHERE is_subscribed = TRUE")
-            active_subs = cursor.fetchone()[0]
-
-            cursor.execute("""
-            SELECT COUNT(*) FROM users 
-            WHERE datetime(created_at) >= datetime('now', '-24 hours')
-            """)
-            new_users = cursor.fetchone()[0]
-
-            cursor.execute("SELECT COUNT(*) FROM compliments")
-            total_comps = cursor.fetchone()[0]
-
-            cursor.execute("SELECT COUNT(*) FROM compliments WHERE is_active = TRUE")
-            active_comps = cursor.fetchone()[0]
-
-            cursor.execute("""
-            SELECT COUNT(*) FROM sent_compliments 
-            WHERE DATE(sent_at) = DATE('now')
-            """)
-            sent_today = cursor.fetchone()[0]
-
-            cursor.execute("""
-            SELECT MAX(sent_at) FROM sent_compliments
-            """)
-            last_sent = cursor.fetchone()[0]
-
-        return {
-            'total_users': total_users,
-            'active_subscriptions': active_subs,
-            'new_users_24h': new_users,
-            'total_compliments': total_comps,
-            'active_compliments': active_comps,
-            'sent_today': sent_today,
-            'last_sent_time': last_sent.strftime('%Y-%m-%d %H:%M:%S') if last_sent else None
-        }
-
-    def get_compliments_count(self) -> int: # Количество активных комплиментов
+    def get_compliments_count(self) -> int:
+        """Количество активных комплиментов"""
         query = "SELECT COUNT(*) FROM compliments WHERE is_active = TRUE"
         try:
             cursor = self.conn.cursor()
@@ -578,7 +638,8 @@ class Database:
             logger.error(f"[get_compliments_count] Ошибка при получении общего количества комплиментов: {e}")
             return 0
 
-    def get_sent_today_count(self) -> int: # Количество отправленных сегодня комплиментов
+    def get_sent_today_count(self) -> int:
+        """Количество отправленных в текущий день комплиментов"""
         query = """
         SELECT COUNT(*) FROM sent_compliments 
         WHERE DATE(sent_at) = DATE('now')
@@ -591,7 +652,8 @@ class Database:
             logger.error(f"[get_sent_today_count] Ошибка при получении количества отправленных комплиментов сегодня: {e}")
             return 0
 
-    def get_last_compliment_time(self) -> Optional[str]: # Время последней отправки комплимента
+    def get_last_compliment_time(self) -> Optional[str]:
+        """Получение времения последней отправки комплимента"""
         query = "SELECT MAX(sent_at) FROM sent_compliments"
         try:
             cursor = self.conn.cursor()
@@ -613,7 +675,8 @@ class Database:
             return None
 
     # ========== Backup Methods ==========
-    def backup_database(self, backup_path: str = None) -> Optional[str]: # Создание резервной копии базы данных
+    def backup_database(self, backup_path: str = None) -> Optional[str]:
+        """Создание резервной копии базы данных"""
         if not backup_path:
             backup_path = f"data/backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db"
 
@@ -626,12 +689,14 @@ class Database:
             logger.error(f"[backup_database] Ошибка при создании бэкапа БД: {e}")
             return None
 
-    def __del__(self): # Закрытие соединения при удалении объекта
+    def __del__(self):
+        """Закрытие соединения при удалении объекта"""
         if hasattr(self, 'conn'):
             self.conn.close()
             logger.info("Соединение с БД успешно закрыто")
 
-    def get_subscribed_users_count(self) -> int: # Количество подписанных пользователей
+    def get_subscribed_users_count(self) -> int:
+        """Количество подписанных пользователей"""
         query = "SELECT COUNT(*) FROM users WHERE is_subscribed = TRUE"
         try:
             cursor = self.conn.cursor()
@@ -641,7 +706,8 @@ class Database:
             logger.error(f"[get_subscribed_users_count] Ошибка при получении количества подписчиков: {e}")
             return 0
 
-    def get_detailed_stats(self) -> Dict: # Подробная статистика для админа с обработкой разных форматов времени
+    def get_detailed_stats(self) -> Dict:
+        """Подробная статистика для админа с обработкой разных форматов времени"""
         try:
             with self.conn:
                 cursor = self.conn.cursor()
@@ -706,7 +772,8 @@ class Database:
     # ========== Reminders Methods ==========
     def save_event(self, user_id: int, year: int, month: int, day: int,
                    time: str, event_description: str, all_day: int = 0,
-                   repeat: int = 0, reminder_offset: int = 0) -> Optional[int]: # Сохранение события
+                   repeat: int = 0, reminder_offset: int = 0) -> Optional[int]:
+        """Сохранение напоминания пользователя"""
         if self.conn is None:
             self.conn()
         try:
@@ -723,7 +790,8 @@ class Database:
             return None
 
     def get_all_events(self, user_id: Optional[int] = None,
-                       only_future: bool = False) -> List[Dict]: # Получение всех событий
+                       only_future: bool = False) -> List[Dict]:
+        """Получение всех напоминаний пользователя"""
         query = """
             SELECT id, user_id, year, month, day, time, 
                    event_description, all_day, repeat, reminder_offset
@@ -764,7 +832,8 @@ class Database:
             logger.error(f"[get_all_events] Ошибка при получении напоминаний: {e}") or []
             return []
 
-    def delete_event(self, event_id, user_id=None): # Удаление события
+    def delete_event(self, event_id, user_id=None):
+        """Удаление напоминания пользователя"""
         try:
             with self.conn:
                 cursor = self.conn.cursor()
@@ -785,7 +854,8 @@ class Database:
 
     def update_event(self, event_id: int, year: int, month: int, day: int,
                      time: str, event_description: str, all_day: int = 0,
-                     repeat: int = 0) -> bool: # Обновление события
+                     repeat: int = 0) -> bool:
+        """Обновление напоминания пользователя"""
         try:
             with self.conn:
                 cursor = self.conn.cursor()
@@ -800,7 +870,8 @@ class Database:
             logger.error(f"[update_event] Ошибка при обновлении напоминания у пользователя: {event_id}: {e}")
             return False
 
-    def get_event_datetime(self, event_id: int) -> Optional[datetime]: # Получение datetime события
+    def get_event_datetime(self, event_id: int) -> Optional[datetime]:
+        """Получение даты напоминания"""
         try:
             cursor = self.conn.cursor()
             cursor.execute('''
@@ -821,7 +892,8 @@ class Database:
             logger.error(f"[get_event_datetime] Ошибка при получении datetime для пользователя: {event_id}: {e}")
             return None
 
-    def cleanup_old_events(self, days: int = 30) -> int: # Очистка старых событий
+    def cleanup_old_events(self, days: int = 30) -> int:
+        """Очистка старых напоминаний"""
         try:
             with self.conn:
                 cursor = self.conn.cursor()
@@ -836,6 +908,7 @@ class Database:
             return 0
 
     def update_event_description(self, event_id, new_text, user_id=None):
+        """Обновление описания напоминания"""
         try:
             query = "UPDATE events SET event_description = ? WHERE id = ?"
             params = [new_text, event_id]
@@ -857,7 +930,8 @@ class Database:
             logger.error(f"Error updating event description: {e}")
             return False
 
-    def update_event_date(self, event_id, new_day, new_month, new_year=None, user_id=None): # Обновление даты события
+    def update_event_date(self, event_id, new_day, new_month, new_year=None, user_id=None):
+        """Обновление даты события"""
         try:
             query = "UPDATE events SET day = ?, month = ?"
             params = [new_day, new_month]
@@ -881,7 +955,8 @@ class Database:
             logger.error(f"[update_event_date] Ошибка при обновлении даты напоминания: {e}")
             return False
 
-    def update_event_time(self, event_id, new_time, user_id=None): # Обновление времени события
+    def update_event_time(self, event_id, new_time, user_id=None):
+        """Обновление времени события"""
         try:
             query = "UPDATE events SET time = ? WHERE id = ?"
             params = [new_time, event_id]
@@ -898,7 +973,8 @@ class Database:
             logger.error(f"[update_event_date] Ошибка при обновлении времени напоминания: {e}")
             return False
 
-    def update_event_repeat(self, event_id, repeat_value, user_id=None): # Обновление повторения события
+    def update_event_repeat(self, event_id, repeat_value, user_id=None):
+        """Обновление повторения события"""
         try:
             query = "UPDATE events SET repeat = ? WHERE id = ?"
             params = [repeat_value, event_id]
@@ -916,7 +992,8 @@ class Database:
             return False
 
     # ========== Partner Methods ==========
-    def send_partner_request(self, requester_id: int, partner_id: int) -> bool: # Отправка запроса на партнерство
+    def send_partner_request(self, requester_id: int, partner_id: int) -> bool:
+        """Отправка запроса на партнерство"""
         try:
             with self.conn:
                 self.conn.execute(
@@ -931,7 +1008,8 @@ class Database:
             logger.error(f"[send_partner_request] Ошибка при отправке запроса партнеру: {e}")
             return False
 
-    def confirm_partner_request(self, requester_id: int, partner_id: int) -> bool: # Подтверждение запроса на партнерство
+    def confirm_partner_request(self, requester_id: int, partner_id: int) -> bool:
+        """Подтверждение запроса на партнерство"""
         try:
             with self.conn:
                 cursor = self.conn.execute(
@@ -947,7 +1025,8 @@ class Database:
             logger.error(f"[confirm_partner] Ошибка при подтвержждении партнера в БД: {e}")
             return False
 
-    def get_partner(self, user_id: int) -> Optional[int]: # Получение партнера из БД
+    def get_partner(self, user_id: int) -> Optional[int]:
+        """Получение партнера из БД"""
         try:
             with self.conn:
                 cursor = self.conn.execute(
@@ -965,26 +1044,29 @@ class Database:
             logger.error(f"[get_partner] Ошибка при получении партнера из БД: {e}")
             return None
 
-    def delete_partner(self, user_id): # Удаление партнера
+    def delete_partner(self, user_id):
+        """Удаление партнера из БД"""
         try:
             with self.conn:
                 cursor = self.conn.execute(
-                    "SELECT partner_id FROM partners WHERE requester_id = ? OR partner_id = ?",
+                    "SELECT requester_id, partner_id FROM partners WHERE requester_id = ? OR partner_id = ?",
                     (user_id, user_id)
                 )
-                if partner := cursor.fetchone():
-                    partner_id = partner[0]
+                if row := cursor.fetchone():
+                    requester_id, partner_id = row
                     self.conn.execute(
                         "DELETE FROM partners WHERE requester_id = ? OR partner_id = ?",
                         (user_id, user_id)
                     )
-                    return True, partner_id
+                    other_id = partner_id if requester_id == user_id else requester_id
+                    return True, other_id
                 return False, None
         except sqlite3.Error as e:
             logging.error(f"[delete_partner] Ошибка при удалении партнера из БД: {e}")
             return False, None
 
-    def has_pending_request(self, requester_id: int, partner_id: int) -> bool: # Проверка заявки на партнерство
+    def has_pending_request(self, requester_id: int, partner_id: int) -> bool:
+        """Проверка заявки на партнерство"""
         try:
             with self.conn:
                 cursor = self.conn.execute(
@@ -999,8 +1081,29 @@ class Database:
             logger.error(f"[has_pending_request] Ошибка при проверке заявки на партнерство: {e}")
             return False
 
+    def get_last_request_time(self, requester_id: int, partner_id: int) -> str:
+        """Получение времени последнего запроса между двумя пользователями"""
+        try:
+            with self.conn:
+                cursor = self.conn.execute(
+                    """
+                    SELECT created_at FROM partners
+                    WHERE requester_id = ? AND partner_id = ? AND confirmed = 0
+                    ORDER BY created_at DESC LIMIT 1
+                    """,
+                    (requester_id, partner_id)
+                )
+                row = cursor.fetchone()
+                if row:
+                    return row[0]  # Время последнего запроса
+                return None
+        except sqlite3.Error as e:
+            logger.error(f"[get_last_request_time] Ошибка при получении времени последнего запроса: {e}")
+            return None
+
     # ========== List Methods ==========
-    def create_list(self, name: str, owner_id: int, partner_id: int) -> Optional[int]: # Создание списка
+    def create_list(self, name: str, owner_id: int, partner_id: int) -> Optional[int]: #
+        """Создание списка пользователя"""
         try:
             with self.conn:
                 cursor = self.conn.execute(
@@ -1017,7 +1120,8 @@ class Database:
 
     def add_list_item(self, list_id: int, description: str, created_by: int,
             image_path: Optional[str] = None,
-            due_date: Optional[str] = None) -> bool: # Добавление элементов в список
+            due_date: Optional[str] = None) -> bool:
+        """Добавление элементов в список пользователя"""
         try:
             with self.conn:
                 self.conn.execute(
@@ -1032,7 +1136,8 @@ class Database:
             logger.error(f"[add_list_item] Ошибка при добавлении элемента списка в БД: {e}")
             return False
 
-    def get_user_lists(self, user_id: int) -> List[Dict[str, Any]]: # Вывод списков пользователя
+    def get_user_lists(self, user_id: int) -> List[Dict[str, Any]]:
+        """Получение списков пользователя"""
         try:
             with self.conn:
                 cursor = self.conn.execute(
@@ -1047,7 +1152,8 @@ class Database:
             logger.error(f"[get_lists_by_user] Ошибка при получении списков из БД: {e}")
             return []
 
-    def get_list_items(self, list_id: int) -> List[Dict[str, Any]]: # Вывод элементов списка
+    def get_list_items(self, list_id: int) -> List[Dict[str, Any]]:
+        """Получение элементов списка пользователя"""
         try:
             with self.conn:
                 cursor = self.conn.execute(
@@ -1063,7 +1169,8 @@ class Database:
             logger.error(f"[get_list_items] Ошибка при получении элементов списка из БД: {e}")
             return []
 
-    def delete_list(self, list_id): # Удаление списка пользователя
+    def delete_list(self, list_id):
+        """Удаление списка пользователя"""
         try:
             with self.conn:
                 self.conn.execute("DELETE FROM list_items WHERE list_id = ?", (list_id,))
@@ -1073,7 +1180,8 @@ class Database:
             logger.error(f"[delete_list] Ошибка при удалении списка из БД: {e}")
             return False
 
-    def delete_list_item(self, item_id: int) -> bool: # Удаление элемента списка
+    def delete_list_item(self, item_id: int) -> bool:
+        """Удаление элемента списка пользователя"""
         try:
             with self.conn:
                 self.conn.execute("DELETE FROM list_items WHERE id = ?", (item_id,))
@@ -1082,7 +1190,8 @@ class Database:
             logger.error(f"[delete_list_item] Ошибка при удалении элемента списка: {e}")
             return False
 
-    def update_listitem_description(self, item_id, new_text, list_id=None): # Обновление
+    def update_listitem_description(self, item_id, new_text, list_id=None):
+        """Обновление названия элемента списка пользователя"""
         try:
             query = "UPDATE list_items SET description = ?"
             params = [new_text]
@@ -1098,11 +1207,12 @@ class Database:
                 cursor = self.conn.cursor()
                 cursor.execute(query, params)
                 return cursor.rowcount > 0
-        except Exception as e:
+        except sqlite3.Error as e:
             logger.error(f"[update_listitem_description] Ошибка при обновлении описания элемента списка: {e}")
             return False
 
     def update_item_date(self, new_date, item_id, list_id=None):  # Обновление даты события
+        """Обновление даты элемента списка пользователя"""
         try:
             query = "UPDATE list_items SET due_date = ?"
             params = [new_date]
@@ -1118,11 +1228,12 @@ class Database:
                 cursor = self.conn.cursor()
                 cursor.execute(query, params)
                 return cursor.rowcount > 0
-        except Exception as e:
+        except sqlite3.Error as e:
             logger.error(f"[update_item_date] Ошибка при обновлении даты элемента списка: {e}")
             return False
 
     def update_item_photo(self, item_id, new_image_path, list_id=None):
+        """Обновление пути к фото для элемента списка пользователя"""
         try:
             query = "UPDATE list_items SET image_path = ?"
             params = [new_image_path]
@@ -1138,6 +1249,60 @@ class Database:
                 cursor = self.conn.cursor()
                 cursor.execute(query, params)
                 return cursor.rowcount > 0
-        except Exception as e:
+        except sqlite3.Error as e:
             logger.error(f"[update_item_photo] Ошибка при обновлении фото элемента списка: {e}")
             return False
+
+    def get_listtitle_by_id(self, list_id):
+        """Получение названия списка пользователя по его ID"""
+        try:
+            query = "SELECT name FROM lists WHERE id = ?"
+            params = [list_id]
+
+            with self.conn:
+                cursor = self.conn.cursor()
+                cursor.execute(query, params)
+                result = cursor.fetchone()
+                if result:
+                    return result[0]  # Название списка
+                else:
+                    return None  # Если список не найден
+        except sqlite3.Error as e:
+            logger.error(f"[get_listtitle_by_id] Ошибка при получении названия листа из БД: {e}")
+            return None
+
+    def get_listID_by_itemid(self, item_id):
+        """Получение ID списка пользователя по ID его элемента"""
+        try:
+            query = "SELECT list_id FROM list_items WHERE id = ?"
+            params = [item_id]
+
+            with self.conn:
+                cursor = self.conn.cursor()
+                cursor.execute(query, params)
+                result = cursor.fetchone()
+                if result:
+                    return result[0]  # Название списка
+                else:
+                    return None  # Если список не найден
+        except sqlite3.Error as e:
+            logger.error(f"[get_listtitle_by_id] Ошибка при получении названия листа из БД: {e}")
+            return None
+
+    def get_itemname_by_id(self, item_id):
+        """Получение названия элемента списка пользователя по его ID"""
+        try:
+            query = "SELECT description FROM list_items WHERE id = ?"
+            params = [item_id]
+
+            with self.conn:
+                cursor = self.conn.cursor()
+                cursor.execute(query, params)
+                result = cursor.fetchone()
+                if result:
+                    return result[0]  # Название списка
+                else:
+                    return None  # Если список не найден
+        except sqlite3.Error as e:
+            logger.error(f"[get_itemname_by_id] Ошибка при получении названия элемента списка из БД: {e}")
+            return None

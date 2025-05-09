@@ -237,7 +237,7 @@ class UserCommands:
             try:
                 self.bot.send_message(
                     message.chat.id,
-                    "⌨ Выбор города:",
+                    "Доступные действия:",
                     reply_markup=self.bm.get_lists_menu()
                 )
             except Exception as e:
@@ -251,7 +251,9 @@ class UserCommands:
                 if partner_id:
                     partner = self.bot.get_chat(partner_id)
                     markup = types.InlineKeyboardMarkup()
-                    markup.add(types.InlineKeyboardButton("❌ Удалить партнёра", callback_data="delete_partner_confirm"))
+                    markup.add(types.InlineKeyboardButton(
+                        "❌ Удалить партнёра", callback_data="delete_partner_confirm")
+                    )
 
                     self.bot.send_message(
                         user_id,
@@ -259,7 +261,10 @@ class UserCommands:
                         reply_markup=markup
                     )
                 else:
-                    self.bot.send_message(user_id, "❗ У вас пока нет подтверждённого партнёра.")
+                    self.bot.send_message(
+                        user_id,
+                        "❗ У вас пока нет подтверждённого партнёра, добавьте, нажав на '➕ Добавить партнёра'."
+                    )
             except Exception as e:
                 self.logger.warning(f"[handle_my_partner_button] Ошибка при получении партнера: {e}")
 

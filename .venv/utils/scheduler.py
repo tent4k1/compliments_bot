@@ -42,7 +42,8 @@ class ComplimentScheduler:
             self.logger.error(f"Ошибка при инициализации планироващиков: {e}")
 
     # ========== Compliments Methods ==========
-    def _initialize_default_compliments(self) -> None: # Инициализация стандартных комплиментов при первом запуске
+    def _initialize_default_compliments(self) -> None:
+        """Инициализация стандартных комплиментов при первом запуске"""
         try:
             if not self.db.get_compliments_count():
                 default_compliments = [
@@ -60,7 +61,8 @@ class ComplimentScheduler:
             self.logger.error(f"[_initialize_default_compliments] Ошибка при инициализации комплиментов: {e}")
             raise
 
-    def send_compliment_to_user(self, user_id: int) -> bool: # Отправка комплимента конкретному пользователю
+    def send_compliment_to_user(self, user_id: int) -> bool:
+        """Отправка комплимента конкретному пользователю"""
         try:
             compliment = self.db.get_random_compliment()
             if not compliment:
@@ -80,7 +82,8 @@ class ComplimentScheduler:
                 self.logger.info(f"Бот заблокирован у пользователя: {user_id}")
             return False
 
-    def send_compliments(self) -> Tuple[int, int]: # Отправка комплиментов всем подписанным пользователям
+    def send_compliments(self) -> Tuple[int, int]:
+        """Отправка комплиментов всем подписанным пользователям"""
         try:
             users = self.db.get_subscribed_users()
             if not users:
@@ -115,7 +118,8 @@ class ComplimentScheduler:
             return (0, 0)
 
     # ========== Jobs Methods ==========
-    def schedule_daily_jobs(self) -> None: # Настройка ежедневного расписания отправки
+    def schedule_daily_jobs(self) -> None:
+        """Настройка ежедневного расписания отправки"""
         try:
             self.scheduler.remove_all_jobs()
 
@@ -142,7 +146,8 @@ class ComplimentScheduler:
             self.logger.error(f"[schedule_daily_jobs] Ошибка при планировании ежедневных комплиментов: {e}")
             raise
 
-    def start(self) -> None: # Запуск планировщика
+    def start(self) -> None:
+        """Запуск планировщика"""
         if self._running:
             self.logger.warning("Планировщик уже запущен")
             return
@@ -156,7 +161,8 @@ class ComplimentScheduler:
             self.logger.error(f"[start] Ошибка при запуске планировщика: {e}")
             raise
 
-    def stop(self) -> None: # Остановка планировщика
+    def stop(self) -> None:
+        """Остановка планировщика"""
         if not self._running:
             self.logger.warning("[stop] Планировщик не запущен")
             return
@@ -169,7 +175,8 @@ class ComplimentScheduler:
             self.logger.error(f"[stop] Ошибка при остановке планировщика: {e}")
             raise
 
-    def get_status(self) -> Dict: # Получение текущего статуса планировщика
+    def get_status(self) -> Dict:
+        """Получение текущего статуса планировщика"""
         return {
             'status': 'running' if self._running else 'stopped',
             'subscribed_users': self.db.get_subscribed_users_count(),
@@ -178,7 +185,8 @@ class ComplimentScheduler:
             'next_run': self._get_next_run_times()
         }
 
-    def _get_next_run_times(self) -> Optional[Dict]: # Получение времени следующей отправки для каждого задания
+    def _get_next_run_times(self) -> Optional[Dict]:
+        """Получение времени следующей отправки для каждого задания"""
         if not self._running:
             return None
 
@@ -189,7 +197,8 @@ class ComplimentScheduler:
             self.logger.error(f"[_get_next_run_times] Ошибка при получении времени следующей отправки: {e}")
             return None
 
-    def _get_daily_forecast(self, city_name: str) -> str: # Получение форматированного прогноза
+    def _get_daily_forecast(self, city_name: str) -> str:
+        """Получение форматированного прогноза"""
         try:
             base_url = "http://api.openweathermap.org/data/2.5/forecast"
             params = {
@@ -244,7 +253,8 @@ class ComplimentScheduler:
         except Exception as e:
             self.logger.error(f"[_get_daily_forecast] Ошибка при форматировани погоды: {e}")
 
-    def check_working(self): # Проверка состояния планировщика
+    def check_working(self):
+        """Проверка состояния планировщика"""
         return {
             'status': 'running' if self._running else 'stopped',
             'users_count': self.db.get_subscribed_users_count(),
@@ -254,7 +264,8 @@ class ComplimentScheduler:
         }
 
     # ========== Weather's Jobs Methods ==========
-    def _schedule_weather(self): # Настройка отправки в определенное время
+    def _schedule_weather(self):
+        """Настройка отправки в определенное время"""
         try:
             self.scheduler.add_job(
                 self.send_daily_weather,
@@ -266,7 +277,8 @@ class ComplimentScheduler:
             self.logger.error(f"Failed to schedule weather: {e}")
             raise
 
-    def send_daily_weather(self): # Отправка прогноза
+    def send_daily_weather(self):
+        """Отправка прогноза"""
         try:
             forecast = self._get_daily_forecast(DEFAULT_CITY)
             users = self.db.get_subscribed_users()
@@ -280,6 +292,7 @@ class ComplimentScheduler:
 
     # ========== Reminder's Jobs Methods ==========
     def send_event_reminder(self, user_id, event_data):
+        """Отправка напоминания пользователю по расписанию"""
         try:
             event_time = datetime(
                 year=event_data['year'],
@@ -324,7 +337,8 @@ class ComplimentScheduler:
         except Exception as e:
             self.logger.error(f"Ошибка при отправке напоминания: {e}")
 
-    def schedule_event_reminder(self, event_data, user_id): # Планирование напоминания
+    def schedule_event_reminder(self, event_data, user_id):
+        """Планирование напоминания"""
         event_time = datetime(
             year=event_data['year'],
             month=int(event_data['month']),
@@ -349,7 +363,8 @@ class ComplimentScheduler:
             self.logger.error(f"Failed to schedule reminder: {e}")
             return False
 
-    def _restore_event_reminders(self): # Восстановление напоминаний из БД при запуске
+    def _restore_event_reminders(self):
+        """Восстановление напоминаний из БД при запуске"""
         events = self.db.get_all_events(only_future=True)
         for event in events:
             event_time = datetime(
@@ -379,7 +394,8 @@ class ComplimentScheduler:
                     id=job_id
                 )
 
-    def cancel_event_reminder(self, event_id: int) -> bool: # Отмена напоминания
+    def cancel_event_reminder(self, event_id: int) -> bool:
+        """Отмена напоминания"""
         try:
             self.scheduler.remove_job(f"event_{event_id}")
             return self.db.delete_event(event_id)
@@ -388,7 +404,8 @@ class ComplimentScheduler:
             return False
 
 
-    def stop(self): # Остановка планировщика
+    def stop(self):
+        """Остановка планировщика"""
         if self._running:
             self.scheduler.shutdown()
             self._running = False

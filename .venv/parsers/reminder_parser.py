@@ -5,7 +5,8 @@ from dateutil.parser import parse
 from typing import Optional
 
 class ReminderParser:
-    def __init__(self): # Инициализация, паттерны команд
+    def __init__(self):
+        """Инициализация, паттерны команд"""
         self.date_pattern = r"(\d{1,2})\s*(января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)\s*(\d{4})?"
         self.time_pattern = r"(\d{1,2}):(\d{2})"
         self.relative_time_pattern = r"(через|за)\s*(\d+)\s*(минут|час|дней|день)"
@@ -13,13 +14,15 @@ class ReminderParser:
         self.logger = logging.getLogger(__name__)
         logging.basicConfig(level=logging.DEBUG)
 
-    def parse_date(self, date_str: str) -> Optional[datetime]: # Парсинг даты
+    def parse_date(self, date_str: str) -> Optional[datetime]:
+        """Парсинг даты"""
         try:
             return parse(date_str, dayfirst=True)
         except ValueError:
             return None
 
-    def extract_date(self, text: str) -> Optional[datetime]: # Извлечение даты
+    def extract_date(self, text: str) -> Optional[datetime]:
+        """Извлечение даты"""
         match = re.search(self.date_pattern, text.lower())
         if match:
             day, month_name, year = match.groups()
@@ -29,13 +32,15 @@ class ReminderParser:
             return datetime(year, month_number, day)
         return None
 
-    def extract_time(self, text: str) -> Optional[str]: # Извлечение времени
+    def extract_time(self, text: str) -> Optional[str]:
+        """Извлечение времени"""
         match = re.search(self.time_pattern, text)
         if match:
             return match.group(0)
         return None
 
-    def extract_relative_time(self, text: str) -> Optional[timedelta]: # Извлечение относительного времени (за час, через час и т.д.)
+    def extract_relative_time(self, text: str) -> Optional[timedelta]:
+        """Извлечение относительного времени (за час, через час и т.д.)"""
         match = re.search(self.relative_time_pattern, text.lower())
         if match:
             direction, value, unit = match.groups()
@@ -48,7 +53,8 @@ class ReminderParser:
                 return timedelta(days=value)
         return None
 
-    def month_name_to_number(self, month_name: str) -> int: # Приведение месяцев к числам
+    def month_name_to_number(self, month_name: str) -> int:
+        """Приведение месяцев к числам"""
         months = {
             "января": 1, "февраля": 2, "марта": 3, "апреля": 4, "мая": 5,
             "июня": 6, "июля": 7, "августа": 8, "сентября": 9, "октября": 10,
@@ -57,7 +63,8 @@ class ReminderParser:
         return months.get(month_name.lower(), 0)
 
     def remove_date_and_time(self, text: str, date: Optional[datetime], time: Optional[str],
-                             offset: Optional[timedelta]) -> str: # Очистка даты и времени из описания
+                             offset: Optional[timedelta]) -> str:
+        """Очистка даты и времени из описания"""
         cleaned_text = text.lower()
 
         if date:
@@ -85,7 +92,8 @@ class ReminderParser:
 
         return cleaned_text
 
-    def parse_event(self, command: str) -> dict | None: # Основной модуль парсинга
+    def parse_event(self, command: str) -> dict | None:
+        """Основной модуль парсинга"""
         try:
             command = command.strip().lower()
             self.logger.debug(f"Команда для парсинга: {command}")
@@ -149,7 +157,8 @@ class ReminderParser:
             self.logger.error(f"[parse_event] Ошибка при парсинге команды: {e}")
             return None
 
-    def unit_to_minutes(self, value, unit): # Приведение времени к минутам
+    def unit_to_minutes(self, value, unit):
+        """Приведение времени к минутам"""
         if "минут" in unit:
             return value
         if "час" in unit:
@@ -158,12 +167,14 @@ class ReminderParser:
             return value * 1440
         return 0
 
-    def clean_description(self, text): # Очистка описания от лишнего
+    def clean_description(self, text):
+        """Очистка описания от лишнего"""
         text = re.sub(r"\b(напомни|пожалуйста|надо|мне|нужно|напомнить)\b", "", text)
         text = re.sub(r"\bв\b$", "", text.strip())  # удаляет "в" на конце
         return text.strip()
 
-    def extract_description(self, text: str) -> Optional[str]: # Извлечение описания из текста
+    def extract_description(self, text: str) -> Optional[str]:
+        """Извлечение описания из текста"""
         date_part = re.search(self.date_pattern, text.lower())
         time_part = re.search(self.time_pattern, text)
 

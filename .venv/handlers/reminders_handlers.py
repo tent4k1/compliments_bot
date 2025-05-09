@@ -24,12 +24,14 @@ class Reminders_Handlers:
         self._register_handlers()
         self.user_event_data = {}
 
-    def _handle_callback_error(self, call, message, exception): # Обработка ошибок
+    def _handle_callback_error(self, call, message, exception):
+        """Обработка ошибок"""
         self.logger.error(f"{message}: {exception}")
         self.bot.answer_callback_query(call.id, message)
 
     @staticmethod
-    def group_events_by_date(events): # Сортировка событий по дате
+    def group_events_by_date(events):
+        """Сортировка событий по дате"""
         try:
             sorted_events = sorted(
                 events,
@@ -44,7 +46,8 @@ class Reminders_Handlers:
             logging.getLogger(__name__).warning(f"Ошибка при сортировке событий: {e}")
 
     @staticmethod
-    def get_status_icon(event): # Выбор иконки для события (при выводе пользователю)
+    def get_status_icon(event):
+        """Выбор иконки для события (при выводе пользователю)"""
         try:
             event_date = datetime(
                 int(event['year']),
@@ -66,7 +69,8 @@ class Reminders_Handlers:
             return "❓"
 
     @staticmethod
-    def escape_markdown_v2(text: str) -> str: # Экранирование символов
+    def escape_markdown_v2(text: str) -> str:
+        """Экранирование символов"""
         try:
             escape_chars = r'\_*[]()~`>#+-=|{}.!'
             return re.sub(rf'([{re.escape(escape_chars)}])', r'\\\1', text)
@@ -75,7 +79,8 @@ class Reminders_Handlers:
 
     def send_grouped_events(self,
                             chat_id: int, events: list,
-                            page: int = 0, message_id: int = None) -> None: # Отправка группированного списка событий
+                            page: int = 0, message_id: int = None) -> None:
+        """Отправка группированного списка событий"""
         if not isinstance(events, list):
             self.logger.error(f"Invalid events type: {type(events)}")
             self._send_error_message(chat_id, message_id, "❌ Ошибка: неверный формат событий")
@@ -104,19 +109,23 @@ class Reminders_Handlers:
             self.logger.error(f"Error in send_grouped_events: {str(e)}", exc_info=True)
             self._send_error_message(chat_id, message_id, "❌ Произошла ошибка при обработке событий")
 
-    def _prepare_grouped_events(self, events: list) -> dict: # Группирует события по датам и возвращает словарь
+    def _prepare_grouped_events(self, events: list) -> dict:
+        """Группирует события по датам и возвращает словарь"""
         grouped = self.group_events_by_date(events)
         return {key: list(group) for key, group in grouped}
 
-    def _split_into_pages(self, grouped_events: dict, items_per_page: int = 3) -> list: # Разбивает даты на страницы
+    def _split_into_pages(self, grouped_events: dict, items_per_page: int = 3) -> list:
+        """Разбивает даты на страницы"""
         dates = list(grouped_events.keys())
         return [dates[i:i + items_per_page] for i in range(0, len(dates), items_per_page)]
 
-    def _validate_page_number(self, page: int, pages: list) -> int: # Корректирует номер страницы при выходе за границы
+    def _validate_page_number(self, page: int, pages: list) -> int:
+        """Корректирует номер страницы при выходе за границы"""
         return min(max(0, page), len(pages) - 1)
 
     def _generate_events_text(self, grouped_events: dict,
-                              pages: list, current_page: int) -> str: # Генерирует текст сообщения с событиями
+                              pages: list, current_page: int) -> str:
+        """Генерирует текст сообщения с событиями"""
         text = [f"*📅 Ваши события \\(страница {current_page + 1}/{len(pages)}\\)*\n"]
 
         for date in pages[current_page]:
@@ -132,7 +141,8 @@ class Reminders_Handlers:
         return "\n".join(text)
 
     def _send_or_edit_message(self, chat_id: int, text: str, markup: types.InlineKeyboardMarkup,
-                              message_id: int = None) -> None: # Отправляет новое сообщение или редактирует существующее
+                              message_id: int = None) -> None:
+        """Отправляет новое сообщение или редактирует существующее"""
         if message_id:
             self.bot.edit_message_text(
                 text, chat_id, message_id,
@@ -147,7 +157,8 @@ class Reminders_Handlers:
             )
 
     def _send_empty_events_message(self, chat_id: int,
-                                   message_id: int = None) -> None: # Отправляет сообщение об отсутствии событий
+                                   message_id: int = None) -> None:
+        """Отправляет сообщение об отсутствии событий"""
         text = "У вас нет событий"
         if message_id:
             self.bot.edit_message_text(text, chat_id, message_id)
@@ -155,18 +166,21 @@ class Reminders_Handlers:
             self.bot.send_message(chat_id, text)
 
     def _send_error_message(self, chat_id: int, message_id: int = None,
-                            text: str = "❌ Произошла ошибка") -> None: # Отправляет сообщение об ошибке
+                            text: str = "❌ Произошла ошибка") -> None:
+        """Отправляет сообщение об ошибке"""
         if message_id:
             self.bot.edit_message_text(text, chat_id, message_id)
         else:
             self.bot.send_message(chat_id, text)
 
-    def start_event_creation(self, user_id): # Начало создания события
+    def start_event_creation(self, user_id):
+        """Начало создания события"""
         if user_id not in self.user_event_data:
             self.user_event_data[user_id] = {}
         return self.bm.get_year_menu()
 
-    def _edit_message(self, call, text, reply_markup): # Редактирование сообщения ботом (функция для упрощения кода)
+    def _edit_message(self, call, text, reply_markup):
+        """Редактирование сообщения ботом (функция для упрощения кода)"""
         self.bot.edit_message_text(
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
@@ -174,7 +188,8 @@ class Reminders_Handlers:
             reply_markup=reply_markup
         )
 
-    def _update_event_list(self, call, user_id, success_text): # Обновление списка событий
+    def _update_event_list(self, call, user_id, success_text):
+        """Обновление списка событий"""
         try:
             events = self.db.get_all_events(user_id)
             self.send_grouped_events(chat_id=call.message.chat.id, events=events, message_id=call.message.message_id)
@@ -182,7 +197,8 @@ class Reminders_Handlers:
         except Exception as e:
             self.logger.warning(f"[_update_event_list] Ошибка при обновлении списка событий : {e}")
 
-    def _register_handlers(self): # Регистрация обработчиков
+    def _register_handlers(self):
+        """Регистрация обработчиков"""
         try:
             self._register_time_handlers()
         except Exception as e:
@@ -204,9 +220,11 @@ class Reminders_Handlers:
         except Exception as e:
             self.logger.error(f"Ошибка при регистрации других обработчиков: {e}")
 
-    def _register_time_handlers(self): # Обработчики команд с временем событий
-        @self.bot.callback_query_handler(func=lambda call: call.data.startswith("year_")) # Выбор года
+    def _register_time_handlers(self):
+        """Обработчики команд с временем событий"""
+        @self.bot.callback_query_handler(func=lambda call: call.data.startswith("year_"))
         def handle_year_selection(call):
+            """Обработчик выбора года"""
             user_id = call.message.chat.id
             try:
                 selected_year = int(call.data.split("_")[1])
@@ -216,8 +234,9 @@ class Reminders_Handlers:
             except Exception as e:
                 self._handle_callback_error(call, "Ошибка выбора года", e)
 
-        @self.bot.callback_query_handler(func=lambda call: call.data.startswith('month_')) # Выбор месяца
+        @self.bot.callback_query_handler(func=lambda call: call.data.startswith('month_'))
         def handle_month_selection(call):
+            """Обработчик выбора месяца"""
             user_id = call.message.chat.id
             try:
                 selected_month = int(call.data.split('_')[1])
@@ -228,8 +247,9 @@ class Reminders_Handlers:
             except Exception as e:
                 self._handle_callback_error(call, "Ошибка выбора месяца", e)
 
-        @self.bot.callback_query_handler(func=lambda call: call.data.startswith('day_')) # Выбор дня
+        @self.bot.callback_query_handler(func=lambda call: call.data.startswith('day_'))
         def handle_day_selection(call):
+            """Обработчик выбора дня"""
             user_id = call.message.chat.id
             try:
                 selected_day = int(call.data.split('_')[1])
@@ -239,8 +259,9 @@ class Reminders_Handlers:
             except Exception as e:
                 self._handle_callback_error(call, "Ошибка выбора дня", e)
 
-        @self.bot.callback_query_handler(func=lambda call: call.data.startswith('time_')) # Выбор времени
+        @self.bot.callback_query_handler(func=lambda call: call.data.startswith('time_'))
         def handle_time_selection(call):
+            """Обработчик выбора времени"""
             user_id = call.message.chat.id
             try:
                 selected = call.data.split('_')[1]
@@ -261,8 +282,9 @@ class Reminders_Handlers:
                 self._handle_callback_error(call, "Ошибка выбора времени", e)
 
         @self.bot.message_handler(func=lambda msg: self.user_event_data.get(
-            msg.chat.id, {}).get('awaiting_time')) # Пользовательское время
+            msg.chat.id, {}).get('awaiting_time'))
         def process_custom_time(message):
+            """Обработчик выбора пользовательского времени"""
             user_id = message.chat.id
             time_input = message.text.strip()
 
@@ -275,10 +297,11 @@ class Reminders_Handlers:
             except ValueError:
                 self.bot.send_message(user_id, "⛔ Неверный формат времени. Пожалуйста, введите в формате ЧЧ:ММ.")
 
-    # ========== Обработчики удаления событий ==========
     def _register_delete_handlers(self):
-        @self.bot.callback_query_handler(func=lambda call: call.data == "delete_mode") # Режим удаления
+        """Обработчики удаления событий"""
+        @self.bot.callback_query_handler(func=lambda call: call.data == "delete_mode")
         def handle_delete_mode(call):
+            """Режим удаления"""
             try:
                 user_id = call.from_user.id
                 events = self.db.get_all_events(user_id)
@@ -301,8 +324,9 @@ class Reminders_Handlers:
             except Exception as e:
                 self._handle_callback_error(call, "Ошибка при входе в режим удаления", e)
 
-        @self.bot.callback_query_handler(func=lambda call: call.data.startswith("del_confirm")) # Подтверждение удаления
+        @self.bot.callback_query_handler(func=lambda call: call.data.startswith("del_confirm"))
         def confirm_deletion(call):
+            """Подтверждение удаления"""
             try:
                 user_id = call.from_user.id
                 selected_ids = self.delete_state.selected_events.get(user_id, set())
@@ -316,8 +340,9 @@ class Reminders_Handlers:
             except Exception as e:
                 self._handle_callback_error(call, "Ошибка при удалении", e)
 
-        @self.bot.callback_query_handler(func=lambda call: call.data == "del_cancel") # Отмена удаления
+        @self.bot.callback_query_handler(func=lambda call: call.data == "del_cancel")
         def cancel_deletion(call):
+            """Отмена удаления"""
             try:
                 user_id = call.from_user.id
                 self.delete_state.selected_events.pop(user_id, None)
@@ -325,8 +350,9 @@ class Reminders_Handlers:
             except Exception as e:
                 self._handle_callback_error(call, "Ошибка при отмене", e)
 
-        @self.bot.callback_query_handler(func=lambda call: call.data.startswith("del_toggle_")) # Выбор события для удаления
+        @self.bot.callback_query_handler(func=lambda call: call.data.startswith("del_toggle_"))
         def toggle_event_selection(call):
+            """Выбор события для удаления"""
             try:
                 user_id = call.from_user.id
                 event_id = int(call.data.split("_")[2])
@@ -351,9 +377,10 @@ class Reminders_Handlers:
             except Exception as e:
                 self._handle_callback_error(call, "Ошибка выбора события", e)
 
-    # ========== Обработчики навигации в событиях ==========
     def _register_navigation_handlers(self):
-        def send_event_page(chat_id, pages, page_num): # Отправка страницы событий
+        """Обработчики навигации в событиях"""
+        def send_event_page(chat_id, pages, page_num):
+            """Отправка страницы событий"""
             try:
                 markup = types.InlineKeyboardMarkup()
                 current_page = pages[page_num]
@@ -378,8 +405,9 @@ class Reminders_Handlers:
                 self.logger.error(f"Error in send_event_page: {e}")
 
         @self.bot.callback_query_handler(func=lambda call: call.data.startswith(
-            ("events_prev_", "events_next_"))) # Кнопки навигации "Дальше" и "Предыдущая"
+            ("events_prev_", "events_next_")))
         def handle_events_pagination(call):
+            """Кнопки навигации 'Дальше' и 'Предыдущая'"""
             try:
                 _, direction, page = call.data.split('_')
                 page = int(page)
@@ -401,8 +429,9 @@ class Reminders_Handlers:
             except Exception as e:
                 self._handle_callback_error(call, "Ошибка при отправке страницы", e)
 
-        @self.bot.callback_query_handler(func=lambda call: call.data.startswith("page_")) # Конкретная страницы событий
+        @self.bot.callback_query_handler(func=lambda call: call.data.startswith("page_"))
         def handle_pagination(call):
+            """Конкретная страницы событий"""
             page = int(call.data.split("_")[1])
             try:
                 events = self.db.get_all_events(call.from_user.id)
@@ -418,15 +447,17 @@ class Reminders_Handlers:
             except Exception as e:
                 self._handle_callback_error(call, "Ошибка при отправке страницы", e)
 
-        @self.bot.callback_query_handler(func=lambda call: call.data == "calendar_menu") # Возвращение в меню календаря
+        @self.bot.callback_query_handler(func=lambda call: call.data == "calendar_menu")
         def handle_back_to_menu(call):
+            """Возвращение в меню календаря"""
             try:
                 self._edit_message(call, "Вы вернулись в меню календаря", self.bm.get_calendar_menu())
             except Exception as e:
                 self._handle_callback_error(call, "Ошибка при возврате в меню", e)
 
-        @self.bot.callback_query_handler(func=lambda call: call.data == "back_to_years") # Возвращение к выбору года
+        @self.bot.callback_query_handler(func=lambda call: call.data == "back_to_years")
         def handle_back_to_years(call):
+            """Возвращение к выбору года"""
             try:
                 user_id = call.from_user.id
                 year = self.user_event_data[user_id].get('year', datetime.now().year)
@@ -434,8 +465,9 @@ class Reminders_Handlers:
             except Exception as e:
                 self._handle_callback_error(call, "Ошибка при возврате к выбору года", e)
 
-        @self.bot.callback_query_handler(func=lambda call: call.data == "back_to_months") # Возвращение к выбору месяца
+        @self.bot.callback_query_handler(func=lambda call: call.data == "back_to_months")
         def handle_back_to_months(call):
+            """Возвращение к выбору месяца"""
             try:
                 user_id = call.from_user.id
                 year = self.user_event_data[user_id].get('year', datetime.now().year)
@@ -443,7 +475,8 @@ class Reminders_Handlers:
             except Exception as e:
                 self._handle_callback_error(call, "Ошибка при возврате к выбору месяца", e)
 
-    def _get_navigation_buttons(self, page_num, pages): # Создание кнопок навигации для "Мои события"
+    def _get_navigation_buttons(self, page_num, pages):
+        """Создание кнопок навигации для 'Мои события'"""
         try:
             buttons = []
             if page_num > 0:
@@ -458,10 +491,11 @@ class Reminders_Handlers:
         except Exception as e:
             self.logger.warning(f"[_get_navigation_buttons] Ошибка при создании кнопок навигации: {e}")
 
-    # ========== Обработчики редактирования событий ==========
     def _register_edit_handlers(self):
-        @self.bot.callback_query_handler(func=lambda call: call.data == "edit_mode") # Режим редактирования
+        """Обработчики редактирования событий"""
+        @self.bot.callback_query_handler(func=lambda call: call.data == "edit_mode")
         def enter_edit_mode(call):
+            """Режим редактирования"""
             try:
                 events = self.db.get_all_events(call.from_user.id)
             except Exception as e:
@@ -478,8 +512,9 @@ class Reminders_Handlers:
 
             self._edit_message(call, "Выберите событие для редактирования:", markup)
 
-        @self.bot.callback_query_handler(func=lambda call: call.data.startswith("edit_event_")) # Выбор параметра для редактирования
+        @self.bot.callback_query_handler(func=lambda call: call.data.startswith("edit_event_"))
         def select_edit_field(call):
+            """Выбор параметра для редактирования"""
             event_id = call.data.split("_")[1]
             markup = types.InlineKeyboardMarkup()
 
@@ -497,8 +532,9 @@ class Reminders_Handlers:
 
             self._edit_message(call, "Что хотите изменить?", markup)
 
-        @self.bot.callback_query_handler(func=lambda call: call.data.startswith("editevent_text_")) # Редактирование описания
+        @self.bot.callback_query_handler(func=lambda call: call.data.startswith("editevent_text_"))
         def edit_event_text(call):
+            """Редактирование описания"""
             try:
                 event_id = call.data.split("_")[1]
                 msg = self.bot.send_message(call.message.chat.id, "Введите новое описание события:")
@@ -507,7 +543,8 @@ class Reminders_Handlers:
             except Exception as e:
                 self._handle_callback_error(call, "Ошибка при редактировании события", e)
 
-        def process_new_text(message, event_id, original_call): # Обновление описания события
+        def process_new_text(message, event_id, original_call):
+            """Обновление описания события"""
             try:
                 new_text = message.text.strip()
                 if not new_text:
@@ -530,8 +567,9 @@ class Reminders_Handlers:
                 self._handle_callback_error(call, "Ошибка при запросе новой даты", e)
                 self.bot.send_message(message.chat.id, "❌ Произошла ошибка")
 
-        @self.bot.callback_query_handler(func=lambda call: call.data.startswith("editevent_date_")) # Редактирование даты
+        @self.bot.callback_query_handler(func=lambda call: call.data.startswith("editevent_date_"))
         def edit_event_date(call):
+            """Редактирование даты"""
             try:
                 event_id = call.data.split("_")[1]
                 msg = self.bot.send_message(call.message.chat.id, "Введите новую дату в формате ДД.ММ.ГГГГ:")
@@ -539,7 +577,8 @@ class Reminders_Handlers:
             except Exception as e:
                 self._handle_callback_error(call, "Ошибка при запросе новой даты", e)
 
-        def process_new_date(message, event_id, original_call): # Обновление даты события
+        def process_new_date(message, event_id, original_call):
+            """Обновление даты события"""
             try:
                 new_date = message.text.strip()
                 day, month, year = map(int, new_date.split("."))
@@ -549,8 +588,9 @@ class Reminders_Handlers:
             except Exception as e:
                 self._handle_callback_error(call, "Ошибка при сохранении новой даты", e)
 
-        @self.bot.callback_query_handler(func=lambda call: call.data.startswith("editevent_time_")) # Редактирование времени
+        @self.bot.callback_query_handler(func=lambda call: call.data.startswith("editevent_time_"))
         def edit_event_time(call):
+            """Редактирование времени"""
             try:
                 event_id = call.data.split("_")[1]
                 msg = self.bot.send_message(call.message.chat.id, "Введите новое время в формате ЧЧ:ММ:")
@@ -558,7 +598,8 @@ class Reminders_Handlers:
             except Exception as e:
                 self._handle_callback_error(call, "Ошибка при запросе нового времени", e)
 
-        def process_new_time(message, event_id, original_call): # Обновление времени события
+        def process_new_time(message, event_id, original_call):
+            """Обновление времени события"""
             try:
                 new_time = message.text.strip()
                 self.db.update_event_time(event_id, new_time)
@@ -568,8 +609,9 @@ class Reminders_Handlers:
                 self._handle_callback_error(call, "Ошибка при сохранении нового времени", e)
 
         @self.bot.callback_query_handler(
-            func=lambda call: call.data.startswith("editevent_repeat_")) # Редактирование повторения напоминания
+            func=lambda call: call.data.startswith("editevent_repeat_"))
         def edit_event_repeat(call):
+            """Редактирование повторения напоминания"""
             try:
                 event_id = call.data.split("_")[1]
                 markup = types.InlineKeyboardMarkup(row_width=2)
@@ -584,6 +626,7 @@ class Reminders_Handlers:
 
         @self.bot.callback_query_handler(func=lambda call: call.data.startswith("setrepeat_"))
         def set_event_repeat(call):
+            """Установка повторения напоминания"""
             try:
                 _, event_id, repeat_type = call.data.split("_", 2)
                 self.db.update_event_repeat(event_id, repeat_type)
@@ -592,8 +635,9 @@ class Reminders_Handlers:
             except Exception as e:
                 self._handle_callback_error(call, "Ошибка при установке повтора", e)
 
-        @self.bot.callback_query_handler(func=lambda call: call.data == "cancel_edit") # Отмена редактирования
+        @self.bot.callback_query_handler(func=lambda call: call.data == "cancel_edit")
         def handle_cancel_edit(call):
+            """Отмена редактирования"""
             user_id = call.from_user.id
             try:
                 events = self.db.get_all_events(user_id=user_id)
@@ -604,10 +648,11 @@ class Reminders_Handlers:
             except Exception as e:
                 self._handle_callback_error(call, "Ошибка при вызове списка событий", e)
 
-    # ========== Прочие обработчики событий ==========
     def _register_other_handlers(self):
-        @self.bot.message_handler(func=lambda msg: 'напомни' in msg.text.lower()) # Обработчик для парсера сообщений
+        """Прочие обработчики событий"""
+        @self.bot.message_handler(func=lambda msg: 'напомни' in msg.text.lower())
         def handle_reminder(message):
+            """Обработчик для парсера сообщений"""
             user_id = message.from_user.id
             command = message.text.lower()
 
@@ -666,6 +711,7 @@ class Reminders_Handlers:
                 self._handle_callback_error(call, "Ошибка при создании напоминания", e)
 
         def send_event_reminder(user_id, event_data):
+            """Отправка напоминания о событии"""
             try:
                 event_time = datetime(
                     year=event_data['date'].year,
@@ -691,8 +737,9 @@ class Reminders_Handlers:
             except Exception as e:
                 self.logger.warning(f"[send_event_reminder] Ошибка при отправке сообщения пользователю: {e}")
 
-        @self.bot.callback_query_handler(func=lambda call: call.data == ("add_reminder")) # Обработчик "Добавить событие"
+        @self.bot.callback_query_handler(func=lambda call: call.data == ("add_reminder"))
         def handle_add_event(message):
+            """Обработчик 'Добавить событие'"""
             try:
                 user_id = message.chat.id
                 if user_id not in self.user_event_data:
@@ -701,8 +748,9 @@ class Reminders_Handlers:
             except Exception as e:
                 self._handle_callback_error(call, "Ошибка при создании события", e)
 
-        @self.bot.callback_query_handler(func=lambda call: call.data.startswith('reminder_')) # За сколько напомнить
+        @self.bot.callback_query_handler(func=lambda call: call.data.startswith('reminder_'))
         def handle_reminder_offset_selection(call):
+            """За сколько напомнить"""
             user_id = call.message.chat.id
             try:
                 offset = call.data.split('_')[1]
@@ -716,8 +764,9 @@ class Reminders_Handlers:
             except Exception as e:
                 self._handle_callback_error(call, "Ошибка выбора напоминания", e)
 
-        @self.bot.callback_query_handler(func=lambda call: call.data in ["repeat_daily", "repeat_once"]) # Ежедневное или одноразовое
+        @self.bot.callback_query_handler(func=lambda call: call.data in ["repeat_daily", "repeat_once"])
         def handle_repeat_selection(call):
+            """Ежедневное или одноразовое напоминание"""
             user_id = call.message.chat.id
             try:
                 self.user_event_data[user_id]['repeat'] = 1 if call.data == "repeat_daily" else 0
@@ -727,8 +776,9 @@ class Reminders_Handlers:
 
         @self.bot.message_handler(
             func=lambda message: self.user_event_data.get(
-                message.chat.id, {}).get('repeat') is not None) # Описание и сохранение события
+                message.chat.id, {}).get('repeat') is not None)
         def handle_event_description(message):
+            """Описание и сохранение события"""
             user_id = message.chat.id
             event_data = self.user_event_data.get(user_id, {})
 

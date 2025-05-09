@@ -40,6 +40,7 @@ def run_health_check(scheduler): # Фоновая проверка состоя�
         except Exception as e:
             logger.error(f"Health check failed: {e}")
             time.sleep(60)
+
 def load_events():
     scheduler = ComplimentScheduler(bot, db)
     events = db.get_all_events()
